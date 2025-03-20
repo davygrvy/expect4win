@@ -102,7 +102,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>USE_TCL_STUBS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -116,7 +116,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>USE_TCL_STUBS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -137,6 +137,22 @@
     <ClInclude Include="expWinErr.h" />
     <ClInclude Include="expWinMessage.hpp" />
     <ClInclude Include="expWinPort.h" />
+    <ClInclude Include="Mcl\CMcl.h" />
+    <ClInclude Include="Mcl\CMclAutoLock.h" />
+    <ClInclude Include="Mcl\CMclAutoPtr.h" />
+    <ClInclude Include="Mcl\CMclCritSec.h" />
+    <ClInclude Include="Mcl\CMclEvent.h" />
+    <ClInclude Include="Mcl\CMclGlobal.h" />
+    <ClInclude Include="Mcl\CMclKernel.h" />
+    <ClInclude Include="Mcl\CMclLinkedLists.h" />
+    <ClInclude Include="Mcl\CMclMailbox.h" />
+    <ClInclude Include="Mcl\CMclMonitor.h" />
+    <ClInclude Include="Mcl\CMclMutex.h" />
+    <ClInclude Include="Mcl\CMclSemaphore.h" />
+    <ClInclude Include="Mcl\CMclSharedMemory.h" />
+    <ClInclude Include="Mcl\CMclThread.h" />
+    <ClInclude Include="Mcl\CMclWaitableCollection.h" />
+    <ClInclude Include="Mcl\CMclWaitableObject.h" />
     <ClInclude Include="TclHash.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -164,6 +180,24 @@
     <ClCompile Include="expWinSpawnChan.cpp" />
     <ClCompile Include="expWinTty.c" />
     <ClCompile Include="expWinUtils.cpp" />
+    <ClCompile Include="Mcl\CMclAutoLock.cpp" />
+    <ClCompile Include="Mcl\CMclAutoPtr.cpp" />
+    <ClCompile Include="Mcl\CMclCritSec.cpp" />
+    <ClCompile Include="Mcl\CMclEvent.cpp" />
+    <ClCompile Include="Mcl\CMclGlobal.cpp" />
+    <ClCompile Include="Mcl\CMclKernel.cpp" />
+    <ClCompile Include="Mcl\CMclMailbox.cpp" />
+    <ClCompile Include="Mcl\CMclMonitor.cpp" />
+    <ClCompile Include="Mcl\CMclMutex.cpp" />
+    <ClCompile Include="Mcl\CMclSemaphore.cpp" />
+    <ClCompile Include="Mcl\CMclSharedMemory.cpp" />
+    <ClCompile Include="Mcl\CMclThread.cpp" />
+    <ClCompile Include="Mcl\CMclWaitableCollection.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Mcl\readme.txt">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </Text>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

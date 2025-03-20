@@ -15,6 +15,9 @@
     <Filter Include="win">
       <UniqueIdentifier>{3af93cf5-526e-4144-92e4-e5900aaf5b7b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Mcl">
+      <UniqueIdentifier>{555a9fae-5e0e-4eb2-8812-d1bd7d85151a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\generic\exp.h">
@@ -49,6 +52,54 @@
     </ClInclude>
     <ClInclude Include="TclHash.hpp">
       <Filter>win</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMcl.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclAutoLock.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclAutoPtr.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclCritSec.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclEvent.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclGlobal.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclKernel.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclLinkedLists.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclMailbox.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclMonitor.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclMutex.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclSemaphore.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclSharedMemory.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclThread.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclWaitableCollection.h">
+      <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Mcl\CMclWaitableObject.h">
+      <Filter>Mcl</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -118,5 +169,49 @@
     <ClCompile Include="expWinUtils.cpp">
       <Filter>win</Filter>
     </ClCompile>
+    <ClCompile Include="Mcl\CMclAutoLock.cpp">
+      <Filter>Mcl</Filter>
+    </ClCompile>
+    <ClCompile Include="Mcl\CMclAutoPtr.cpp">
+      <Filter>Mcl</Filter>
+    </ClCompile>
+    <ClCompile Include="Mcl\CMclCritSec.cpp">
+      <Filter>Mcl</Filter>
+    </ClCompile>
+    <ClCompile Include="Mcl\CMclEvent.cpp">
+      <Filter>Mcl</Filter>
+    </ClCompile>
+    <ClCompile Include="Mcl\CMclGlobal.cpp">
+      <Filter>Mcl</Filter>
+    </ClCompile>
+    <ClCompile Include="Mcl\CMclKernel.cpp">
+      <Filter>Mcl</Filter>
+    </ClCompile>
+    <ClCompile Include="Mcl\CMclMailbox.cpp">
+      <Filter>Mcl</Filter>
+    </ClCompile>
+    <ClCompile Include="Mcl\CMclMonitor.cpp">
+      <Filter>Mcl</Filter>
+    </ClCompile>
+    <ClCompile Include="Mcl\CMclMutex.cpp">
+      <Filter>Mcl</Filter>
+    </ClCompile>
+    <ClCompile Include="Mcl\CMclSemaphore.cpp">
+      <Filter>Mcl</Filter>
+    </ClCompile>
+    <ClCompile Include="Mcl\CMclSharedMemory.cpp">
+      <Filter>Mcl</Filter>
+    </ClCompile>
+    <ClCompile Include="Mcl\CMclThread.cpp">
+      <Filter>Mcl</Filter>
+    </ClCompile>
+    <ClCompile Include="Mcl\CMclWaitableCollection.cpp">
+      <Filter>Mcl</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Mcl\readme.txt">
+      <Filter>Mcl</Filter>
+    </Text>
   </ItemGroup>
 </Project>
