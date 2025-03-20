@@ -204,6 +204,8 @@ private:
 	    strcat(data_DllName, "\\injector.dll");
 	}
     };
+#   elif defined(_M_X64)
+	error "x64 opcodes required!"
 #   else
 #	error "need correct stub loader opcodes for this hardware."
 #   endif
