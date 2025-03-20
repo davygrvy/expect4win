@@ -8,7 +8,7 @@ https://learn.microsoft.com/en-us/windows/win32/memory/data-execution-prevention
 
 Umm, yes, that's exactly what we're doing here and described in the
 comments:
-https://github.com/davygrvy/expect4win/blob/75b3a4ff285e8ff4c5fbdce56858c5bf8464974c/win/expWinConsoleDebugger.cpp#L666
+https://github.com/davygrvy/expect4win/blob/75b3a4ff285e8ff4c5fbdce56858c5bf8464974c/win/expWinConsoleDebugger.cpp#L662-L677
 
 
 There must be a better way?  Yes, this.  I will slowly port to Detours
