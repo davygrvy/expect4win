@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
     <Filter Include="Header Files">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
@@ -13,5 +9,114 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="generic">
+      <UniqueIdentifier>{3c810b59-adbe-4e6b-bcd0-9d6d664c0fb7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="win">
+      <UniqueIdentifier>{3af93cf5-526e-4144-92e4-e5900aaf5b7b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\generic\exp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\generic\expInt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\generic\expIntDecls.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\generic\expIntPlatDecls.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\generic\expPlatDecls.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\generic\expPort.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="expWinConsoleDebugger.hpp">
+      <Filter>win</Filter>
+    </ClInclude>
+    <ClInclude Include="expWinErr.h">
+      <Filter>win</Filter>
+    </ClInclude>
+    <ClInclude Include="expWinMessage.hpp">
+      <Filter>win</Filter>
+    </ClInclude>
+    <ClInclude Include="expWinPort.h">
+      <Filter>win</Filter>
+    </ClInclude>
+    <ClInclude Include="TclHash.hpp">
+      <Filter>win</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\generic\exp_chan.c">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generic\exp_closetcl.c">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generic\exp_command.c">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generic\exp_event.c">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generic\exp_glob.c">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generic\exp_log.c">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generic\exp_main_sub.c">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generic\exp_noevent.c">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generic\exp_pty.c">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generic\exp_trap.c">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generic\exp_tty_comm.c">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generic\expect.c">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generic\expStubInit.c">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generic\tp_license_e4w.c">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="expWinCommand.c">
+      <Filter>win</Filter>
+    </ClCompile>
+    <ClCompile Include="expWinConsoleDebugger.cpp">
+      <Filter>win</Filter>
+    </ClCompile>
+    <ClCompile Include="expWinConsoleDebuggerBreakPoints.cpp">
+      <Filter>win</Filter>
+    </ClCompile>
+    <ClCompile Include="expWinInit.c">
+      <Filter>win</Filter>
+    </ClCompile>
+    <ClCompile Include="expWinMessage.cpp">
+      <Filter>win</Filter>
+    </ClCompile>
+    <ClCompile Include="expWinSpawnChan.cpp">
+      <Filter>win</Filter>
+    </ClCompile>
+    <ClCompile Include="expWinTty.c">
+      <Filter>win</Filter>
+    </ClCompile>
+    <ClCompile Include="expWinUtils.cpp">
+      <Filter>win</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
