@@ -2121,7 +2121,7 @@ expMatchProcess(interp, eo, cc, bg, detail)
 {
     ExpState *esPtr = 0;
     Tcl_Obj *body = 0;
-    Tcl_Obj *buffer;
+    Tcl_Obj *buffer=NULL;
     struct ecase *e = 0;	/* points to current ecase */
     int match = -1;		/* characters matched */
     char match_char;	/* place to hold char temporarily */
@@ -2976,7 +2976,8 @@ Exp_CloseOnEofCmd(clientData,interp,argc,argv)
 	} else {
 	    close_on_eof = esPtr->close_on_eof;
 	}
-	sprintf(interp->result,"%d",close_on_eof);
+	//sprintf(interp->result,"%d",close_on_eof);
+	Tcl_SetObjResult(interp, Tcl_NewIntObj(close_on_eof));
 	return(TCL_OK);
     }
 

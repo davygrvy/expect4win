@@ -594,6 +594,8 @@ ExpWinSpawnClass::Splice ()
 Tcl_ChannelTypeVersion
 ExpSpawnGetTclMaxChannelVer (Tcl_ChannelTypeVersion designMax)
 {
+    return designMax;
+#if 0 // We are 2025, this is not a concern for backloading
     Tcl_ChannelType fake;
 
     if (designMax == (Tcl_ChannelTypeVersion) 0x1) {
@@ -608,6 +610,7 @@ ExpSpawnGetTclMaxChannelVer (Tcl_ChannelTypeVersion designMax)
 	if (fake.version == (Tcl_ChannelTypeVersion) 0x1) break;
     }
     return fake.version;
+#endif
 }
 
 ThreadSpecificData *

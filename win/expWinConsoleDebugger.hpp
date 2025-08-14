@@ -35,6 +35,7 @@
 // for the hash table template (argh! I really don't want Tcl deps in this code).
 #include "TclHash.hpp"
 #include <imagehlp.h>
+//#include <Dbghelp.h>
 
 
 // callback type.
@@ -108,7 +109,7 @@ private:
 	HANDLE	    hThread;
 	DWORD	    dwThreadId;
 	DWORD	    nargs;
-	DWORD	    args[16];	// Space for saving 16 args.  We need this
+	DWORD_PTR   args[16];	// Space for saving 16 args.  We need this
 				// space while we are waiting for the return
 				// value for the function.
 	LPCONTEXT   context;	// Current context.
@@ -154,7 +155,7 @@ private:
 	HANDLE	    hFile;
 	LPVOID	    baseAddr;
 	PCHAR	    modName;
-	PIMAGE_DEBUG_INFORMATION dbgInfo;
+	//PIMAGE_DEBUG_INFORMATION dbgInfo;
     };
 
     typedef Tcl::Hash<PVOID, TCL_STRING_KEYS> STRING2PTR;
@@ -184,6 +185,7 @@ private:
 	Process	    *nextPtr;		// Linked list.
     };
 
+#ifndef USE_DETOURS
 #   include <pshpack1.h>
 #   ifdef _M_IX86
     struct LOADLIBRARY_STUB
@@ -210,6 +212,7 @@ private:
 #	error "need correct stub loader opcodes for this hardware."
 #   endif
 #   include <poppack.h>
+#endif // USE_DETOURS
 
     //  Direct debug event handlers.
     //
@@ -331,7 +334,7 @@ private:
     LPVOID	pStartAddress;	// Start address of the top process.
     BYTE	originalExeEntryPointOpcode;
 
-    LOADLIBRARY_STUB injectorStub;// opcodes we use to force load our injector
+    //LOADLIBRARY_STUB injectorStub;// opcodes we use to force load our injector
 				//  dll.
     PVOID	pInjectorStub;	// Pointer to memory in sub process used
 				//  for the injector's loader.
@@ -351,7 +354,7 @@ private:
 
     CMclMailbox *injectorIPC;	// IPC transfer mechanism to the injector dll.
 
-    bool interacting;
+    //bool interacting;
 
     DWORD status;
 

@@ -30,6 +30,10 @@
 #include "expWinPort.h"
 #include "expWinConsoleDebugger.hpp"
 #include "expWinInjectorIPC.hpp"
+#if USE_DETOURS
+#   include "Detours\detours.h"
+#endif
+
 
 #if 0  // Can't do DOS, so don't try.
 #include <vdmdbg.h>
@@ -56,14 +60,14 @@
 #   pragma comment (lib, "imagehlp.lib")
 #endif
 
-#ifdef _M_IX86
+//#ifdef _M_IX86
     // Breakpoint opcode on i386
 #   define BRK_OPCODE	    0xCC
     // Single step flag
 #   define SINGLE_STEP_BIT  0x100
-#else
-#   error "need opcodes for this hardware".
-#endif
+//#else
+//#   error "need opcodes for this hardware".
+//#endif
 
 
 
@@ -141,132 +145,132 @@ ConsoleDebugger::ConsoleDebugger (
 
     BreakArrayKernel32[0].funcName = "AllocConsole";
     BreakArrayKernel32[0].nargs = 0;
-    BreakArrayKernel32[0].breakProc = OnAllocConsole;
+    BreakArrayKernel32[0].breakProc = &ConsoleDebugger::OnAllocConsole;
     BreakArrayKernel32[0].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[1].funcName = "Beep";
     BreakArrayKernel32[1].nargs = 2;
-    BreakArrayKernel32[1].breakProc = OnBeep;
+    BreakArrayKernel32[1].breakProc = &ConsoleDebugger::OnBeep;
     BreakArrayKernel32[1].dwFlags = BREAK_OUT|BREAK_IN;
 
     BreakArrayKernel32[2].funcName = "CreateConsoleScreenBuffer";
     BreakArrayKernel32[2].nargs = 5;
-    BreakArrayKernel32[2].breakProc = OnCreateConsoleScreenBuffer;
+    BreakArrayKernel32[2].breakProc = &ConsoleDebugger::OnCreateConsoleScreenBuffer;
     BreakArrayKernel32[2].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[3].funcName = "FillConsoleOutputAttribute";
     BreakArrayKernel32[3].nargs = 5;
-    BreakArrayKernel32[3].breakProc = OnFillConsoleOutputAttribute;
+    BreakArrayKernel32[3].breakProc = &ConsoleDebugger::OnFillConsoleOutputAttribute;
     BreakArrayKernel32[3].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[4].funcName = "FillConsoleOutputCharacterA";
     BreakArrayKernel32[4].nargs = 5;
-    BreakArrayKernel32[4].breakProc = OnFillConsoleOutputCharacterA;
+    BreakArrayKernel32[4].breakProc = &ConsoleDebugger::OnFillConsoleOutputCharacterA;
     BreakArrayKernel32[4].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[5].funcName = "FillConsoleOutputCharacterW";
     BreakArrayKernel32[5].nargs = 5;
-    BreakArrayKernel32[5].breakProc = OnFillConsoleOutputCharacterW;
+    BreakArrayKernel32[5].breakProc = &ConsoleDebugger::OnFillConsoleOutputCharacterW;
     BreakArrayKernel32[5].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[6].funcName = "FreeConsole";
     BreakArrayKernel32[6].nargs = 0;
-    BreakArrayKernel32[6].breakProc = OnFreeConsole;
+    BreakArrayKernel32[6].breakProc = &ConsoleDebugger::OnFreeConsole;
     BreakArrayKernel32[6].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[7].funcName = "GetStdHandle";
     BreakArrayKernel32[7].nargs = 1;
-    BreakArrayKernel32[7].breakProc = OnGetStdHandle;
+    BreakArrayKernel32[7].breakProc = &ConsoleDebugger::OnGetStdHandle;
     BreakArrayKernel32[7].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[8].funcName = "OpenConsoleW";
     BreakArrayKernel32[8].nargs = 4;
-    BreakArrayKernel32[8].breakProc = OnOpenConsoleW;
+    BreakArrayKernel32[8].breakProc = &ConsoleDebugger::OnOpenConsoleW;
     BreakArrayKernel32[8].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[9].funcName = "ScrollConsoleScreenBufferA";
     BreakArrayKernel32[9].nargs = 5;
-    BreakArrayKernel32[9].breakProc = OnScrollConsoleScreenBuffer;
+    BreakArrayKernel32[9].breakProc = &ConsoleDebugger::OnScrollConsoleScreenBuffer;
     BreakArrayKernel32[9].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[10].funcName = "ScrollConsoleScreenBufferW";
     BreakArrayKernel32[10].nargs = 5;
-    BreakArrayKernel32[10].breakProc = OnScrollConsoleScreenBuffer;
+    BreakArrayKernel32[10].breakProc = &ConsoleDebugger::OnScrollConsoleScreenBuffer;
     BreakArrayKernel32[10].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[11].funcName = "SetConsoleActiveScreenBuffer";
     BreakArrayKernel32[11].nargs = 1;
-    BreakArrayKernel32[11].breakProc = OnSetConsoleActiveScreenBuffer;
+    BreakArrayKernel32[11].breakProc = &ConsoleDebugger::OnSetConsoleActiveScreenBuffer;
     BreakArrayKernel32[11].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[12].funcName = "SetConsoleCP";
     BreakArrayKernel32[12].nargs = 1;
-    BreakArrayKernel32[12].breakProc = OnSetConsoleCP;
+    BreakArrayKernel32[12].breakProc = &ConsoleDebugger::OnSetConsoleCP;
     BreakArrayKernel32[12].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[13].funcName = "SetConsoleCursorInfo";
     BreakArrayKernel32[13].nargs = 2;
-    BreakArrayKernel32[13].breakProc = OnSetConsoleCursorInfo;
+    BreakArrayKernel32[13].breakProc = &ConsoleDebugger::OnSetConsoleCursorInfo;
     BreakArrayKernel32[13].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[14].funcName = "SetConsoleCursorPosition";
     BreakArrayKernel32[14].nargs = 2;
-    BreakArrayKernel32[14].breakProc = OnSetConsoleCursorPosition;
+    BreakArrayKernel32[14].breakProc = &ConsoleDebugger::OnSetConsoleCursorPosition;
     BreakArrayKernel32[14].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[15].funcName = "SetConsoleMode";
     BreakArrayKernel32[15].nargs = 2;
-    BreakArrayKernel32[15].breakProc = OnSetConsoleMode;
+    BreakArrayKernel32[15].breakProc = &ConsoleDebugger::OnSetConsoleMode;
     BreakArrayKernel32[15].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[16].funcName = "SetConsoleOutputCP";
     BreakArrayKernel32[16].nargs = 1;
-    BreakArrayKernel32[16].breakProc = OnSetConsoleOutputCP;
+    BreakArrayKernel32[16].breakProc = &ConsoleDebugger::OnSetConsoleOutputCP;
     BreakArrayKernel32[16].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[17].funcName = "SetConsoleTextAttribute";
     BreakArrayKernel32[17].nargs = 2;
-    BreakArrayKernel32[17].breakProc = OnSetConsoleTextAttribute;
+    BreakArrayKernel32[17].breakProc = &ConsoleDebugger::OnSetConsoleTextAttribute;
     BreakArrayKernel32[17].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[18].funcName = "SetConsoleWindowInfo";
     BreakArrayKernel32[18].nargs = 3;
-    BreakArrayKernel32[18].breakProc = OnSetConsoleWindowInfo;
+    BreakArrayKernel32[18].breakProc = &ConsoleDebugger::OnSetConsoleWindowInfo;
     BreakArrayKernel32[18].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[19].funcName = "WriteConsoleA";
     BreakArrayKernel32[19].nargs = 5;
-    BreakArrayKernel32[19].breakProc = OnWriteConsoleA;
+    BreakArrayKernel32[19].breakProc = &ConsoleDebugger::OnWriteConsoleA;
     BreakArrayKernel32[19].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[20].funcName = "WriteConsoleW";
     BreakArrayKernel32[20].nargs = 5;
-    BreakArrayKernel32[20].breakProc = OnWriteConsoleW;
+    BreakArrayKernel32[20].breakProc = &ConsoleDebugger::OnWriteConsoleW;
     BreakArrayKernel32[20].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[21].funcName = "WriteConsoleOutputA";
     BreakArrayKernel32[21].nargs = 5;
-    BreakArrayKernel32[21].breakProc = OnWriteConsoleOutputA;
+    BreakArrayKernel32[21].breakProc = &ConsoleDebugger::OnWriteConsoleOutputA;
     BreakArrayKernel32[21].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[22].funcName = "WriteConsoleOutputW";
     BreakArrayKernel32[22].nargs = 5;
-    BreakArrayKernel32[22].breakProc = OnWriteConsoleOutputW;
+    BreakArrayKernel32[22].breakProc = &ConsoleDebugger::OnWriteConsoleOutputW;
     BreakArrayKernel32[22].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[23].funcName = "WriteConsoleOutputCharacterA";
     BreakArrayKernel32[23].nargs = 5;
-    BreakArrayKernel32[23].breakProc = OnWriteConsoleOutputCharacterA;
+    BreakArrayKernel32[23].breakProc = &ConsoleDebugger::OnWriteConsoleOutputCharacterA;
     BreakArrayKernel32[23].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[24].funcName = "WriteConsoleOutputCharacterW";
     BreakArrayKernel32[24].nargs = 5;
-    BreakArrayKernel32[24].breakProc = OnWriteConsoleOutputCharacterW;
+    BreakArrayKernel32[24].breakProc = &ConsoleDebugger::OnWriteConsoleOutputCharacterW;
     BreakArrayKernel32[24].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[25].funcName = "WriteFile";
     BreakArrayKernel32[25].nargs = 5;
-    BreakArrayKernel32[25].breakProc = OnWriteFile;
+    BreakArrayKernel32[25].breakProc = &ConsoleDebugger::OnWriteFile;
     BreakArrayKernel32[25].dwFlags = BREAK_OUT;
 
     BreakArrayKernel32[26].funcName = 0L;
@@ -276,7 +280,7 @@ ConsoleDebugger::ConsoleDebugger (
 
     BreakArrayUser32[0].funcName = "IsWindowVisible";
     BreakArrayUser32[0].nargs = 1;
-    BreakArrayUser32[0].breakProc = OnIsWindowVisible;
+    BreakArrayUser32[0].breakProc = &ConsoleDebugger::OnIsWindowVisible;
     BreakArrayUser32[0].dwFlags = BREAK_OUT;
 
     BreakArrayUser32[1].funcName = 0L;
@@ -343,8 +347,11 @@ ConsoleDebugger::ThreadHandlerProc(void)
     if (getenv("EXPECT_SLAVE_HIGH_PRIORITY") != NULL) {
 	createFlags |= ABOVE_NORMAL_PRIORITY_CLASS;
     }
-
+#if USE_DETOURS
+    ok = DetourCreateProcessWithDlls(
+#else
     ok = expWinProcs->createProcessProc(
+#endif
 	    0L,		// Module name (not needed).
 	    cmdline,	// Command line string (must be writable!).
 	    0L,		// Process handle will not be inheritable.
@@ -354,7 +361,15 @@ ConsoleDebugger::ThreadHandlerProc(void)
 	    env,	// Use custom environment block, or parent's if NULL.
 	    dir,	// Use custom starting directory, or parent's if NULL.
 	    &si,	// Pointer to STARTUPINFO structure.
+#if USE_DETOURS
+	    &pi,	// Pointer to PROCESS_INFORMATION structure.
+	    1,
+	    "injector.dll",
+	    NULL);
+#else
 	    &pi);	// Pointer to PROCESS_INFORMATION structure.
+#endif
+
 
     if (!ok) {
 	status = GetLastError();
@@ -659,6 +674,7 @@ ConsoleDebugger::OnXSecondBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     WriteSubprocessMemory(proc, pStartAddress,
 	    &originalExeEntryPointOpcode, sizeof(BYTE));
 
+#ifndef USE_DETOURS
     //  Make some memory for our stub that we place into the processes' address
     //  space.  This stub (or set of opcodes) calls LoadLibrary() to bring in our
     //  injector dll that acts as the receiver for "injecting" console events.
@@ -688,6 +704,7 @@ ConsoleDebugger::OnXSecondBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     CONTEXT stubContext = preStubContext;
     stubContext.Eip = (DWORD) pInjectorStub;
     SetThreadContext(tinfo->hThread, &stubContext);
+#endif //!USE_DETOURS
 
     return TRUE;
 }
@@ -740,17 +757,18 @@ ConsoleDebugger::OnXThirdBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     }
     pidKilled = 0;
 
+#ifndef USE_DETOURS
     // Set our thread to run the entry point, now, starting the
     // application once we return from this breakpoint.
     preStubContext.Eip -= sizeof(BYTE);
     SetThreadContext(tinfo->hThread, &preStubContext);
-
 
     // We should now remove the memory allocated in the sub process for
     // our injector stub.  The dll is already loaded and there's no sense
     // hogging a virtual memory page.
     //
     RemoveSubprocessMemory(proc, pInjectorStub);
+#endif
 
 
     /////////////////////////////////////////////////////////////////////
@@ -914,6 +932,7 @@ void
 ConsoleDebugger::OnXSecondChanceException(Process *proc,
     LPDEBUG_EVENT pDebEvent)
 {
+ #if 0  // need x64 imp for this.
     BOOL b;
     STACKFRAME frame;
     CONTEXT context;
@@ -1083,6 +1102,7 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
     SymCleanup(proc->hProcess);
 #else
 #  error "Unsupported architecture"
+#endif
 #endif
 }
 
@@ -1268,7 +1288,7 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
     PIMAGE_EXPORT_DIRECTORY ped;
     IMAGE_EXPORT_DIRECTORY exportDir;
     DWORD n;
-    DWORD base;
+    LPVOID base;
     CHAR funcName[256];
     CHAR dllname[256];
     PVOID ptr, namePtr, funcPtr;
@@ -1280,7 +1300,7 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 	info->lpImageName, info->fUnicode,
 	info->lpBaseOfDll, info->dwDebugInfoFileOffset);
 
-    base = (DWORD) info->lpBaseOfDll;
+    base = info->lpBaseOfDll;
 
     // Check for the DOS signature
     //
@@ -1903,7 +1923,7 @@ ConsoleDebugger::LoadedModule(Process *proc, HANDLE hFile, LPVOID modname,
     modPtr->hFile = hFile;
     modPtr->baseAddr = baseAddr;
     modPtr->modName = s;
-    modPtr->dbgInfo = 0L;
+    //modPtr->dbgInfo = 0L;
     if (proc->exeModule == 0L) {
 	proc->exeModule = modPtr;
     }
@@ -2216,7 +2236,7 @@ ConsoleDebugger::EnterInteract (HANDLE OutConsole)
     // Set interactingConsole to the proper size?
     // more ???  help!
 
-    interacting = true;
+    //interacting = true;
     bpCritSec.Leave();
 }
 
@@ -2224,7 +2244,7 @@ void
 ConsoleDebugger::ExitInteract ()
 {
 //    interactingConsole = 0L;
-    interacting = false;
+    //interacting = false;
 }
 
 const DWORD ConsoleDebugger::KEY_CONTROL= 0;

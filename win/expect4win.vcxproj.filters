@@ -18,6 +18,9 @@
     <Filter Include="Mcl">
       <UniqueIdentifier>{555a9fae-5e0e-4eb2-8812-d1bd7d85151a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Detours">
+      <UniqueIdentifier>{d2fedfac-d55a-4b5b-9b11-f6bd8353767e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\generic\exp.h">
@@ -100,6 +103,9 @@
     </ClInclude>
     <ClInclude Include="Mcl\CMclWaitableObject.h">
       <Filter>Mcl</Filter>
+    </ClInclude>
+    <ClInclude Include="Detours\detours.h">
+      <Filter>Detours</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -207,6 +213,9 @@
     </ClCompile>
     <ClCompile Include="Mcl\CMclWaitableCollection.cpp">
       <Filter>Mcl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\generic\getopt.c">
+      <Filter>generic</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -1109,7 +1109,7 @@ void
 exp_free_state(fd_first)
 struct exp_state_list *fd_first;
 {
-    struct exp_state_list *fd, *penultimate;
+    struct exp_state_list *fd, *penultimate=NULL;
 
     if (!fd_first) return;
 
@@ -1371,7 +1371,7 @@ Exp_SendObjCmd(clientData, interp, objc, objv) /* INTL */
 #define SEND_STYLE_BREAK	0x20
     int send_style = SEND_STYLE_PLAIN;
     int want_cooked = TRUE;
-    CONST char *string;		/* string to send */
+    CONST char *string=NULL;		/* string to send */
     int len = -1;		/* length of string to send */
     int zeros;		/* count of how many ascii zeros to send */
 

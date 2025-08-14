@@ -205,8 +205,8 @@ typedef struct {
 #define EXP_WINAPPL_WIN64DRV	14
 
 
-typedef void (expDiagLogProc) _ANSI_ARGS_((CONST char *msg));
-typedef CONST char *(expErrnoMsgProc) _ANSI_ARGS_((int errCode));
+typedef void (expDiagLogProc) (CONST char *msg);
+typedef CONST char *(expErrnoMsgProc) (int errCode);
 
 /*
  * Include the public function declarations that are accessible via

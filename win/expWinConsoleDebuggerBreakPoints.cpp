@@ -649,7 +649,7 @@ ConsoleDebugger::OnSetConsoleActiveScreenBuffer(Process *proc,
 	return;
     }
 
-    __asm nop;
+    //__asm nop;
 //    RefreshScreen(&proc->overlapped);
 }
 

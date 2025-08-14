@@ -494,9 +494,9 @@ eval_trap_action(interp,sig,trap,oldcode)
     int code_flag;
     int newcode;
     Tcl_DString ei;	/* errorInfo */
-    CONST char *eip;
+    CONST char *eip = NULL;
     Tcl_DString ec;	/* errorCode */
-    CONST char *ecp;
+    CONST char *ecp = NULL;
     Tcl_DString ir;	/* interp's result */
 
     expDiagLog("async event handler: Tcl_Eval(%s)\r\n",trap->action);

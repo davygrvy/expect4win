@@ -43,14 +43,14 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -102,8 +102,9 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>USE_TCL_STUBS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BUILD_exp;USE_TCL_STUBS;USE_DETOURS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Users\davygrvy\tcl_src\generic;C:\Users\davygrvy\tcl_src\win;$(SolutionDir)generic;$(SolutionDir)win;$(SolutionDir)win\Mcl;$(SolutionDir)win\Detours</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -116,8 +117,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>USE_TCL_STUBS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BUILD_exp;USE_TCL_STUBS;USE_DETOURS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Users\davygrvy\tcl_src\generic;C:\Users\davygrvy\tcl_src\win;$(SolutionDir)generic;$(SolutionDir)win;$(SolutionDir)win\Mcl;$(SolutionDir)win\Detours</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,6 +135,7 @@
     <ClInclude Include="..\generic\expIntPlatDecls.h" />
     <ClInclude Include="..\generic\expPlatDecls.h" />
     <ClInclude Include="..\generic\expPort.h" />
+    <ClInclude Include="Detours\detours.h" />
     <ClInclude Include="expWinConsoleDebugger.hpp" />
     <ClInclude Include="expWinErr.h" />
     <ClInclude Include="expWinMessage.hpp" />
@@ -165,10 +168,14 @@
     <ClCompile Include="..\generic\exp_glob.c" />
     <ClCompile Include="..\generic\exp_log.c" />
     <ClCompile Include="..\generic\exp_main_sub.c" />
-    <ClCompile Include="..\generic\exp_noevent.c" />
+    <ClCompile Include="..\generic\exp_noevent.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\generic\exp_pty.c" />
     <ClCompile Include="..\generic\exp_trap.c" />
     <ClCompile Include="..\generic\exp_tty_comm.c" />
+    <ClCompile Include="..\generic\getopt.c" />
     <ClCompile Include="..\generic\tp_license_e4w.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
