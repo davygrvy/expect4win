@@ -33,6 +33,11 @@
 #include "expWinInjectorIPC.hpp"
 #if USE_DETOURS
 #   include "Detours\detours.h"
+#   ifdef _WIN64
+#	pragma comment (lib,"detours64.lib")
+#   else
+#	pragma comment (lib,"detours32.lib")
+#   endif
 #endif
 
 
@@ -1579,7 +1584,7 @@ ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     CONTEXT context;
     ThreadInfo *tinfo;
     Breakpoint *pbrkpt, *brkpt;
-    PDWORD pdw;
+    PDWORD_PTR pdw;
     DWORD_PTR i;
     DWORD_PTR dw;
 
@@ -1631,9 +1636,9 @@ ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 	Breakpoint *bpt;
 	// Get the arguments to the function and store them in the thread
 	// specific data structure.
-	for (pdw = tinfo->args, i=0; i < brkpt->breakInfo->nargs; i++, pdw++) {
+	for (pdw = &tinfo->args[0], i = 0; i < brkpt->breakInfo->nargs; i++, pdw++) {
 	    ReadSubprocessMemory(proc, (PVOID) ((PBYTE)context_Esp+(4*(i+1))),
-				 pdw, sizeof(DWORD));
+				 (LPVOID) pdw, sizeof(DWORD));
 	}
 	tinfo->nargs = brkpt->breakInfo->nargs;
 	tinfo->context = &context;

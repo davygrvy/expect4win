@@ -158,7 +158,11 @@ private:
 	HANDLE	    hFile;
 	LPVOID	    baseAddr;
 	PCHAR	    modName;
+#ifdef _WIN64
+#   error "IMAGE_DEBUG_INFORMATION not available on WIN64 :("
+#else
 	PIMAGE_DEBUG_INFORMATION dbgInfo;
+#endif
     };
 
     typedef Tcl::Hash<PVOID, TCL_STRING_KEYS> STRING2PTR;
