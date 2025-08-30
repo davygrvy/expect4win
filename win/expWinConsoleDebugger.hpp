@@ -159,7 +159,7 @@ private:
 	LPVOID	    baseAddr;
 	PCHAR	    modName;
 #ifdef _WIN64
-#   error "IMAGE_DEBUG_INFORMATION not available on WIN64 :("
+	PIMAGEHLP_MODULE dbgInfo;
 #else
 	PIMAGE_DEBUG_INFORMATION dbgInfo;
 #endif

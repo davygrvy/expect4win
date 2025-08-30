@@ -21,6 +21,9 @@
     <Filter Include="Detours">
       <UniqueIdentifier>{d2fedfac-d55a-4b5b-9b11-f6bd8353767e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="compat">
+      <UniqueIdentifier>{b6631345-30f9-4cbc-abdd-230ddcea7812}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\generic\exp.h">
@@ -106,6 +109,9 @@
     </ClInclude>
     <ClInclude Include="Detours\detours.h">
       <Filter>Detours</Filter>
+    </ClInclude>
+    <ClInclude Include="..\generic\expDecls.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -217,10 +223,18 @@
     <ClCompile Include="..\generic\getopt.c">
       <Filter>generic</Filter>
     </ClCompile>
+    <ClCompile Include="..\compat\exp_strf.c">
+      <Filter>compat</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Mcl\readme.txt">
       <Filter>Mcl</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\generic\exp.decls">
+      <Filter>Header Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

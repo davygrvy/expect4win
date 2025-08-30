@@ -923,11 +923,13 @@ ConsoleDebugger::OnXSingleStep(Process *proc, LPDEBUG_EVENT pDebEvent)
     BYTE code;
     ThreadInfo *tinfo;
 
-    for (tinfo = proc->threadList; tinfo != 0L; tinfo = tinfo->nextPtr) {
+    for (tinfo = proc->threadList; tinfo != NULL; tinfo = tinfo->nextPtr) {
 	if (pDebEvent->dwThreadId == tinfo->dwThreadId) {
 	    break;
 	}
     }
+
+    if (tinfo == NULL) return;
 
     // Now, we need to restore the breakpoint that we had removed.
     //
@@ -978,7 +980,7 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
     GetThreadContext(tinfo->hThread, &context);
 
     /*
-     * XXX: From what I can tell, SymInitialize is broken on Windows NT 4.0
+     * From what I can tell, SymInitialize is broken on Windows NT 4.0
      * if you try to have it iterate the modules in a process.  It always
      * returns an object mismatch error.  Instead, initialize without iterating
      * the modules.  Contrary to what MSDN documentation says,
@@ -1078,11 +1080,7 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
         pSymbol->MaxNameLength = 512;
 
 	b = StackWalk(
-#ifdef _WIN64
-	    IMAGE_FILE_MACHINE_IA64,
-#else
 	    IMAGE_FILE_MACHINE_I386,
-#endif
 	    proc->hProcess,
 	    tinfo->hThread, &frame, &context, 0L,
 	    SymFunctionTableAccess, SymGetModuleBase,

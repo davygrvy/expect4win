@@ -350,10 +350,10 @@ again:
 #else
 # if defined(HAVE_SV_TIMEZONE)
 	    i = 0;
-	    if (daylight && timeptr->tm_isdst) {
+	    if (_daylight && timeptr->tm_isdst) {
 		i = 1;
 	    }
-	    strcpy(tbuf, tzname[i]);
+	    strcpy(tbuf, _tzname[i]);
 # else
 	    strcpy(tbuf, zone_name (timeptr));
 #  if defined(HAVE_TIMEZONE)
