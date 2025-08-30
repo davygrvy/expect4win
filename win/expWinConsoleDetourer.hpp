@@ -1,7 +1,10 @@
 /* ----------------------------------------------------------------------------
- * expWinConsoleDebugger.hpp --
+ * expWinConsoleDetourer.hpp --
  *
- *	Console debugger class declared here.
+ *	Console detourer class declared here.
+ * 
+ *	See documentation for Detours @
+ *	https://github.com/microsoft/Detours/wiki/OverviewHelpers
  *
  * ----------------------------------------------------------------------------
  *
@@ -21,28 +24,24 @@
  *	    http://expect.sf.net/
  *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: expWinConsoleDebugger.hpp,v 1.1.2.31 2003/08/26 20:46:52 davygrvy Exp $
+ * RCS: @(#) $Id:$
  * ----------------------------------------------------------------------------
  */
 
 #ifndef INC_expWinConsoleDetourer_hpp__
 #define INC_expWinConsoleDetourer_hpp__
 
-#include "CMcl.h"
+#include "Mcl/CMcl.h"
 #include "expWinMessage.hpp"
 //#include "expWinTrampolineIPC.hpp"
 
-// for the hash table template (argh! I really don't want Tcl deps in this code).
-//#include "TclHash.hpp"
-
 
 // callback type.
-class ConsoleDebuggerCallback
+class ConsoleDetourerCallback
 {
-    friend class ConsoleDebugger;
+    friend class ConsoleDetourer;
     virtual void AlertReadable (void) = 0;
 };
-
 
 
 //  This is our detourer.  We run it in a thread. 
@@ -69,7 +68,7 @@ public:
 	CMclLinkedList<Message *> &_mQ,	// parent owned linkedlist for returning data stream.
 	CMclLinkedList<Message *> &_eQ,	// parent owned linkedlist for returning error stream.
 	CMclEvent &_readyUp,		// set when child process is ready (or failed).
-	ConsoleDebuggerCallback &_callback
+	ConsoleDetourerCallback &_callback
 	);
 
     // copying and passing by copy are not allowed...
@@ -87,6 +86,7 @@ public:
     inline HANDLE Handle (void) { return hRootProcess; }
     inline HANDLE Console (void) { return hMasterConsole; }
     inline HANDLE ConsoleScreenBuffer (void) { return hCopyScreenBuffer; }
+
     int Write (LPCSTR buffer, SIZE_T length, LPDWORD err); // send vt100 to the slave console.
     DWORD Write (IPCMsg *msg);			    // send an INPUT_RECORD or ctrlEvent instead.
 
@@ -97,8 +97,22 @@ public:
 
 private:
     virtual unsigned ThreadHandlerProc(void);
+    DWORD CommonDetourer();
 
-    CMclMailbox *trampIPC;	// IPC transfer mechanism to the trampoline dll.
+ 
+    // send info back to the parent
+    void WriteMaster(LPCSTR, SIZE_T);
+    void WriteMasterWarning(LPCSTR, SIZE_T);
+    void WriteMasterError(LPCSTR, SIZE_T, DWORD);
+
+    // announce we are done.
+    void NotifyDone();
+
+    ConsoleDetourerCallback& callback;
+
+
+    CMclMailbox* toTrampIPC;	// IPC transfer mechanism to the trampoline dll.
+    CMclMailbox* fromTrampIPC;	// IPC transfer mechanism from the trampoline dll.
 
     bool interacting;
 
@@ -107,6 +121,15 @@ private:
     HANDLE hRootProcess;
     HANDLE hMasterConsole;
     HANDLE hCopyScreenBuffer;
+    TCHAR* cmdline;	// commandline string (in system encoding)
+    TCHAR* env;		// environment block (in system encoding)
+    TCHAR* dir;		// startup directory (in system encoding)
+
+    TCHAR* env;		// environment block (in system encoding)
+    TCHAR* dir;		// startup directory (in system encoding)
+
+    CMclEvent& readyUp;	// indicate to the parent when to unblock and check creation status.
+    CMclCritSec bpCritSec;  // for locking during sensite stuff
 
 
     const static DWORD KEY_UP;
