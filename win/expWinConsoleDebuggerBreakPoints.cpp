@@ -146,9 +146,11 @@ ConsoleDebugger::OnBeep(Process *proc, ThreadInfo *threadInfo,
 	if (*returnValue == 0) {
 	    buf[0] = 7; // ASCII beep
 	    WriteMaster(buf, 1);
+#if 0  // solve this later
 	    if (interacting) {
 		Beep(threadInfo->args[0], lastBeepDuration);
 	    }
+#endif
 	}
     }
 }

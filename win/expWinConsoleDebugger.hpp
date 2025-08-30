@@ -67,10 +67,10 @@ public:
 					// These 3 maintain a reference until
 					//  _readyUp is signaled.
 	int show,			// $exp::nt_debug, shows spawned children.
-	const char *_injPath,		// location -=[ ON THE FILE SYSTEM!!! ]=-
+	LPCSTR _injPath,		// location on the file system 
 	CMclLinkedList<Message *> &_mQ,	// parent owned linkedlist for returning data stream.
 	CMclLinkedList<Message *> &_eQ,	// parent owned linkedlist for returning error stream.
-	CMclEvent &_readyUp,		// set when child ready (or failed).
+	CMclEvent &_readyUp,		// set when child process is ready (or failed).
 	ConsoleDebuggerCallback &_callback
 	);
 
@@ -131,18 +131,21 @@ private:
 
     class DllBreakpoints {
 	friend class ConsoleDebugger;
-	const char  *dllName;
+	LPCSTR	    dllName;
 	BreakInfo   *breakInfo;
     };
 
     class Breakpoint {
 	friend class ConsoleDebugger;
-	Breakpoint() : returning(FALSE), origRetAddr(0), threadInfo(0L) {}
+	Breakpoint() :
+	    returning(FALSE), code(0), codePtr(NULL), codeReturnPtr(NULL),
+	    origRetAddr(NULL), threadInfo(NULL), nextPtr(NULL), breakInfo(NULL)
+	{}
 	BOOL	    returning;	    // Is this a returning breakpoint?
 	BYTE	    code;	    // Original code.
 	PVOID	    codePtr;	    // Address of original code.
 	PVOID	    codeReturnPtr;  // Address of return breakpoint.
-	DWORD	    origRetAddr;    // Original return address.
+	DWORD_PTR    origRetAddr;    // Original return address.
 	BreakInfo   *breakInfo;	    // Information about the breakpoint.
 	ThreadInfo  *threadInfo;    // If this breakpoint is for a specific
 				    //  thread.
@@ -155,7 +158,7 @@ private:
 	HANDLE	    hFile;
 	LPVOID	    baseAddr;
 	PCHAR	    modName;
-	//PIMAGE_DEBUG_INFORMATION dbgInfo;
+	PIMAGE_DEBUG_INFORMATION dbgInfo;
     };
 
     typedef Tcl::Hash<PVOID, TCL_STRING_KEYS> STRING2PTR;
@@ -166,9 +169,9 @@ private:
     //
     class Process {
 	friend class ConsoleDebugger;
-	Process() : threadList(0L), threadCount(0), brkptList(0L),
-	    offset(0), nBreakCount(0), consoleHandlesMax(0),
-	    hProcess(0L), pSubprocessMemory(0), exeModule(0L) {}
+	Process() : threadList(NULL), threadCount(0), brkptList(NULL),
+	    offset(0), nBreakCount(0), consoleHandles{}, consoleHandlesMax(0),
+	    hProcess(INVALID_HANDLE_VALUE), pSubprocessMemory(0), exeModule(NULL) {}
 	ThreadInfo  *threadList;	// List of threads in the subprocess.
 	Breakpoint  *brkptList;		// List of breakpoints in the subprocess.
 	DWORD	    offset;		// Breakpoint offset in allocated mem.
@@ -180,7 +183,7 @@ private:
 	DWORD	    threadCount;	// Number of threads in process.
 	PVOID	    pSubprocessMemory;	// Pointer to allocated memory in subprocess.
 	STRING2PTR  funcTable;		// Function table name to address mapping.
-	PTR2MODULE  moduleTable;	// Win32 modules that have been loaded.
+	PTR2MODULE  moduleTable;	// Windows modules that have been loaded.
 	Module	    *exeModule;		// Executable module info.
 	Process	    *nextPtr;		// Linked list.
     };
@@ -333,6 +336,8 @@ private:
 
     LPVOID	pStartAddress;	// Start address of the top process.
     BYTE	originalExeEntryPointOpcode;
+
+    LPCSTR	injPath;
 
     //LOADLIBRARY_STUB injectorStub;// opcodes we use to force load our injector
 				//  dll.

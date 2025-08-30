@@ -117,7 +117,7 @@ public:
     Tcl_Channel channel;
 
     ExpWinSpawnClass(TCHAR *cmdline, TCHAR *env, TCHAR *dir,
-	    int show, const char *injPath, ThreadSpecificData *_tsd)
+	    int show, const TCHAR *injPath, ThreadSpecificData *_tsd)
 	: channel(0L), watchMask(0), blocking(0), eventInQ(0), tsd(_tsd)
     {
 	CMclEvent readyUp;
@@ -126,9 +126,21 @@ public:
 	debugger = new ConsoleDebugger(cmdline, env, dir, show, injPath, outLL,
 		errLL, readyUp, *this);
 	debuggerThread = new CMclThread(debugger);
+#if 1
+	// Starvation in multithreading occurs when a thread is unable to
+	// progress or execute tasks despite being ready to run, mainly due
+	// to consistent denial of access to essential resources such as the
+	// CPU. This phenomenon significantly impacts the overall performance
+	// and responsiveness of a multithreaded application.
+
+	// if someone outside us is being a resource hog, it isn't fixed
+	// by us raising our priority.  It becomes an arms race, a race to
+	// the bottom.
+
 	if (getenv("EXPECT_DEBUGGER_HIGH_PRIORITY") != NULL) {
 	    debuggerThread->SetPriority(THREAD_PRIORITY_ABOVE_NORMAL);
 	}
+#endif
 	readyUp.Wait(INFINITE);
 	status = debugger->Status();
     }
@@ -821,20 +833,21 @@ Exp_CreateSpawnChannel (
     ExpWinSpawnClass *instance;
     int i, listLen;
     Tcl_Obj **elemArray;
-    Tcl_DString env, dir, temp, cmdLine, exeFullPathUTF;
+    Tcl_DString env, dir, temp, cmdLine, exeFullPathUTF, injDS;
     TCHAR *envBlock, *startDir;
     DWORD applType;
     Tcl_Channel newChan = NULL;
-    const char *injPath;
+    LPCSTR injPath;
 
     Tcl_DStringInit(&temp);
     Tcl_DStringInit(&env);
     Tcl_DStringInit(&dir);
     Tcl_DStringInit(&cmdLine);
     Tcl_DStringInit(&exeFullPathUTF);
+    Tcl_DStringInit(&injDS);
 
-    *pid = 0L;
-    *theUglyHandleHackJob = 0L;
+    *pid = 0;
+    *theUglyHandleHackJob = (Tcl_Pid) INVALID_HANDLE_VALUE;
     tsdPtr = ExpWinSpawnInit();
 
     /* prepare the environment */
@@ -937,10 +950,12 @@ Exp_CreateSpawnChannel (
 	    objc, objv, &cmdLine);
 
     /* Where's the injector dll? */
-    injPath = Tcl_GetVar(interp, "::exp::injector_path", 0);
+    Tcl_UtfToExternalDString(Tcl_GetEncoding(NULL, "cp1252"),
+	    Tcl_GetVar(interp, "::exp::injector_path", 0), -1, &injDS);
+    injPath = Tcl_DStringValue(&injDS);
     if (!injPath) {
 	// Use local if not set.
-	injPath = ".";
+    	injPath = TEXT(".");
     }
 
     /* kick it up! */
@@ -979,6 +994,7 @@ out:
     Tcl_DStringFree(&dir);
     Tcl_DStringFree(&cmdLine);
     Tcl_DStringFree(&exeFullPathUTF);
+    Tcl_DStringFree(&injDS);
     return newChan;
 }
 

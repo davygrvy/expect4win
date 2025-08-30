@@ -28,6 +28,7 @@
 #include <stddef.h>
 #include <assert.h>
 #include "expWinPort.h"
+#include <strsafe.h>
 #include "expWinConsoleDebugger.hpp"
 #include "expWinInjectorIPC.hpp"
 #if USE_DETOURS
@@ -79,7 +80,7 @@ ConsoleDebugger::ConsoleDebugger (
 					// These 3 maintain a reference until
 					//  _readyUp is signaled.
 	int _show,			// $exp::nt_debug, shows spawned children.
-	const char *_injPath,		// location -=[ ON THE FILE SYSTEM!!! ]=-
+	LPCSTR _injPath,		// location -=[ ON THE FILE SYSTEM!!! ]=-
 	CMclLinkedList<Message *> &_mQ,	// parent owned linkedlist for returning data stream.
 	CMclLinkedList<Message *> &_eQ,	// parent owned linkedlist for returning error stream.
 	CMclEvent &_readyUp,		// set when child ready (or failed).
@@ -89,8 +90,8 @@ ConsoleDebugger::ConsoleDebugger (
     readyUp(_readyUp), callback(_callback), ProcessList(0L),
     CursorKnown(FALSE), ConsoleOutputCP(0), ConsoleCP(0),
     pStartAddress(0L), originalExeEntryPointOpcode(0), show(_show),
-    injectorStub(_injPath), pInjectorStub(0), injectorIPC(0L),
-    interacting(false), status(NO_ERROR), pid(0), fatalException(0),
+    injPath(_injPath), pInjectorStub(0), injectorIPC(0L),
+    /*interacting(false),*/ status(NO_ERROR), pid(0), fatalException(0),
     pidKilled(0),
     hMasterConsole(INVALID_HANDLE_VALUE),
     hCopyScreenBuffer(INVALID_HANDLE_VALUE)
@@ -104,25 +105,25 @@ ConsoleDebugger::ConsoleDebugger (
 
     if (dwPlatformId == VER_PLATFORM_WIN32_NT) {
 	pfnVirtualAllocEx = (PFNVIRTUALALLOCEX) GetProcAddress(
-		GetModuleHandle("KERNEL32.DLL"),"VirtualAllocEx");
+		GetModuleHandleA("KERNEL32.DLL"),"VirtualAllocEx");
 	pfnVirtualFreeEx = (PFNVIRTUALFREEEX) GetProcAddress(
-		GetModuleHandle("KERNEL32.DLL"),"VirtualFreeEx");
+		GetModuleHandleA("KERNEL32.DLL"),"VirtualFreeEx");
     }
 
-    n = GetEnvironmentVariable("Path", NULL, 0);
-    n += GetEnvironmentVariable("_NT_SYMBOL_PATH", NULL, 0) + 1;
-    n += GetEnvironmentVariable("_NT_ALT_SYMBOL_PATH", NULL, 0) + 1;
-    n += GetEnvironmentVariable("SystemRoot", NULL, 0) + 1;
+    n = GetEnvironmentVariableA("Path", NULL, 0);
+    n += GetEnvironmentVariableA("_NT_SYMBOL_PATH", NULL, 0) + 1;
+    n += GetEnvironmentVariableA("_NT_ALT_SYMBOL_PATH", NULL, 0) + 1;
+    n += GetEnvironmentVariableA("SystemRoot", NULL, 0) + 1;
 
-    SymbolPath = new char [n + 1];
+    SymbolPath = new char [n + 5];
 
-    i = GetEnvironmentVariable("Path", SymbolPath, n);
+    i = GetEnvironmentVariableA("Path", SymbolPath, n);
     SymbolPath[i++] = ';';
-    i += GetEnvironmentVariable("_NT_SYMBOL_PATH", &SymbolPath[i], n-i);
+    i += GetEnvironmentVariableA("_NT_SYMBOL_PATH", &SymbolPath[i], n-i);
     SymbolPath[i++] = ';';
-    i += GetEnvironmentVariable("_NT_ALT_SYMBOL_PATH", &SymbolPath[i], n-i);
+    i += GetEnvironmentVariableA("_NT_ALT_SYMBOL_PATH", &SymbolPath[i], n-i);
     SymbolPath[i++] = ';';
-    i += GetEnvironmentVariable("SystemRoot", &SymbolPath[i], n-i);
+    i += GetEnvironmentVariableA("SystemRoot", &SymbolPath[i], n-i);
 
     //  Until further notice, assume this.
     //
@@ -297,7 +298,7 @@ ConsoleDebugger::ConsoleDebugger (
     BreakPoints[2].dllName = 0L;
     BreakPoints[2].breakInfo = 0L;
 
-    hMasterConsole = CreateFile("CONOUT$", GENERIC_READ|GENERIC_WRITE,
+    hMasterConsole = CreateFileA("CONOUT$", GENERIC_READ|GENERIC_WRITE,
 	    FILE_SHARE_READ|FILE_SHARE_WRITE, 0L, OPEN_EXISTING, 0, 0L);
 
     hCopyScreenBuffer = CreateConsoleScreenBuffer(
@@ -343,10 +344,24 @@ ConsoleDebugger::ThreadHandlerProc(void)
 	CREATE_DEFAULT_ERROR_MODE |	// Is this correct so error dialogs don't pop up?
 	(expWinProcs->useWide ? CREATE_UNICODE_ENVIRONMENT : 0);
 
+#if 1
+    // Starvation in multithreading occurs when a thread is unable to
+    // progress or execute tasks despite being ready to run, mainly due
+    // to consistent denial of access to essential resources such as the
+    // CPU. This phenomenon significantly impacts the overall performance
+    // and responsiveness of a multithreaded application.
+    
+    // if someone outside us is being a resource hog, it isn't fixed
+    // by us raising our priority.  It becomes an arms race, a race to
+    // the bottom.
+
     /* Magic env var to raise expect priority */
     if (getenv("EXPECT_SLAVE_HIGH_PRIORITY") != NULL) {
 	createFlags |= ABOVE_NORMAL_PRIORITY_CLASS;
     }
+#endif
+
+
 #if USE_DETOURS
     ok = DetourCreateProcessWithDlls(
 #else
@@ -364,7 +379,7 @@ ConsoleDebugger::ThreadHandlerProc(void)
 #if USE_DETOURS
 	    &pi,	// Pointer to PROCESS_INFORMATION structure.
 	    1,
-	    "injector.dll",
+	    &injPath,
 	    NULL);
 #else
 	    &pi);	// Pointer to PROCESS_INFORMATION structure.
@@ -727,7 +742,7 @@ BOOL
 ConsoleDebugger::OnXThirdBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 {
     ThreadInfo *tinfo;
-    CHAR boxName[50];
+    TCHAR boxName[50];
     DWORD err;
 #   define RETBUF_SIZE 2048
     BYTE retbuf[RETBUF_SIZE];
@@ -742,7 +757,7 @@ ConsoleDebugger::OnXThirdBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 
     // Create the IPC connection to our loaded injector.dll
     //
-    wsprintf(boxName, "ExpectInjector_pid%d", proc->pid);
+    StringCbPrintf(boxName, 50, TEXT("ExpectInjector_pid%d"), proc->pid);
     injectorIPC = new CMclMailbox(IPC_NUMSLOTS, IPC_SLOTSIZE, boxName);
 
     // Check status.
@@ -861,7 +876,7 @@ ConsoleDebugger::SetBreakpointAtAddr(Process *proc, BreakInfo *info, PVOID funcP
 
     bpt = new Breakpoint;
     bpt->codePtr = funcPtr;
-    bpt->codeReturnPtr = (PVOID) (proc->offset + (DWORD) proc->pSubprocessMemory);
+    bpt->codeReturnPtr = (PVOID) ((DWORD_PTR) proc->pSubprocessMemory + proc->offset);
     bpt->breakInfo = info;
     proc->offset += 2;
     bpt->nextPtr = lastBpt = proc->brkptList;
@@ -932,7 +947,9 @@ void
 ConsoleDebugger::OnXSecondChanceException(Process *proc,
     LPDEBUG_EVENT pDebEvent)
 {
- #if 0  // need x64 imp for this.
+#ifdef _WIN64
+    // need x64 imp for this.
+#else
     BOOL b;
     STACKFRAME frame;
     CONTEXT context;
@@ -941,7 +958,7 @@ ConsoleDebugger::OnXSecondChanceException(Process *proc,
     DWORD displacement;
     BYTE symbolBuffer[sizeof(IMAGEHLP_SYMBOL) + 512];
     PIMAGEHLP_SYMBOL pSymbol = (PIMAGEHLP_SYMBOL)symbolBuffer;
-    char *s;
+    LPCSTR s;
     int result;
     unsigned int level = 0;
     HANDLE hProcess;
@@ -1196,13 +1213,15 @@ ConsoleDebugger::OnXDeleteThread(Process *proc, LPDEBUG_EVENT pDebEvent)
 		prev->nextPtr = threadInfo->nextPtr;
 	    }
 	    proc->threadCount--;
+#if 0
 	    /*
 	     * Do not close the thread handle, as it can lead to a crash,
 	     * as reported by Bhava Avula (bavula at broadcom.com) and
 	     * Frank Ellis (fellis at extremenetworks.com).
 	     * Triggered by spawning tclsh that in turn spawns telnet.
-	     CloseHandle(threadInfo->hThread);
 	     */
+	     CloseHandle(threadInfo->hThread);
+#endif
 	    delete threadInfo;
 	    break;
 	}
@@ -1228,7 +1247,6 @@ ConsoleDebugger::OnXCreateProcess(Process *proc, LPDEBUG_EVENT pDebEvent)
 {
     ThreadInfo *threadInfo;
     CREATE_PROCESS_DEBUG_INFO *info = &pDebEvent->u.CreateProcessInfo;
-    int known;
 
     // Save the first processes' start address.
     if (!pStartAddress) {
@@ -1241,7 +1259,7 @@ ConsoleDebugger::OnXCreateProcess(Process *proc, LPDEBUG_EVENT pDebEvent)
 	proc->pid = pDebEvent->dwProcessId;
     }
 
-    known = LoadedModule(proc, info->hFile, info->lpImageName, info->fUnicode,
+    LoadedModule(proc, info->hFile, info->lpImageName, info->fUnicode,
 	    info->lpBaseOfImage, info->dwDebugInfoFileOffset);
 
     threadInfo = new ThreadInfo;
@@ -1250,11 +1268,15 @@ ConsoleDebugger::OnXCreateProcess(Process *proc, LPDEBUG_EVENT pDebEvent)
     threadInfo->nextPtr = proc->threadList;
     proc->threadCount++;
     proc->threadList = threadInfo;
+#if 0
     /*
-     * XXX: Is the CloseHandle correct?  This indicates it might be:
+     * Is the CloseHandle correct?  This indicates it might be:
      * http://msdn.microsoft.com/library/en-us/debug/base/writing_the_debugger_s_main_loop.asp
+     * 
+     * NOT CORRECT ;) --davygrvy
+     */
      CloseHandle(info->hFile);
-    */
+#endif
 }
 
 /*
@@ -1276,14 +1298,13 @@ ConsoleDebugger::OnXCreateProcess(Process *proc, LPDEBUG_EVENT pDebEvent)
 void
 ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 {
-    WORD w;
+    //WORD w;
     DWORD dw;
-    DWORD ImageHdrOffset;
-    PIMAGE_FILE_HEADER pfh;	/* File header image in subprocess memory */
-#if 0 // not used
-    PIMAGE_SECTION_HEADER psh;
-#endif
-    PIMAGE_OPTIONAL_HEADER poh;
+    //DWORD ImageHdrOffset;
+    IMAGE_DOS_HEADER dosHdr;
+    IMAGE_NT_HEADERS ntHdr;
+    //PIMAGE_FILE_HEADER pfh;	/* File header image in subprocess memory */
+    //PIMAGE_OPTIONAL_HEADER poh;
     IMAGE_DATA_DIRECTORY dataDir;
     PIMAGE_EXPORT_DIRECTORY ped;
     IMAGE_EXPORT_DIRECTORY exportDir;
@@ -1292,34 +1313,29 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
     CHAR funcName[256];
     CHAR dllname[256];
     PVOID ptr, namePtr, funcPtr;
-    DWORD p;
+    //LPVOID p;
     LPLOAD_DLL_DEBUG_INFO info = &pDebEvent->u.LoadDll;
     BOOL bFound;
 
-    int unknown = !LoadedModule(proc, info->hFile,
-	info->lpImageName, info->fUnicode,
-	info->lpBaseOfDll, info->dwDebugInfoFileOffset);
+    LoadedModule(proc, info->hFile, info->lpImageName, info->fUnicode,
+	    info->lpBaseOfDll, info->dwDebugInfoFileOffset);
 
     base = info->lpBaseOfDll;
 
     // Check for the DOS signature
     //
-    ReadSubprocessMemory(proc, info->lpBaseOfDll, &w, sizeof(WORD));
-    if (w != IMAGE_DOS_SIGNATURE) return;
+    ReadSubprocessMemory(proc, base, &dosHdr, sizeof(IMAGE_DOS_HEADER));
+    if (dosHdr.e_magic != IMAGE_DOS_SIGNATURE) return;
     
-    // Skip over the DOS signature and check the PE signature
+    // Check for the PE signature
+    // e_lfanew represents the absolute file offset, in bytes, to the start of the NT headers
     //
-    p = base;
-    p += 15 * sizeof(DWORD);
-    ptr = (PVOID) p;
-    ReadSubprocessMemory(proc, (PVOID) p, &ImageHdrOffset, sizeof(DWORD));
+    ReadSubprocessMemory(proc, ((PBYTE)base + dosHdr.e_lfanew),
+	    &ntHdr, sizeof(IMAGE_NT_HEADERS));
+    if (ntHdr.Signature != IMAGE_NT_SIGNATURE) return;
 
-    p = base;
-    p += ImageHdrOffset;
-    ReadSubprocessMemory(proc, (PVOID) p, &dw, sizeof(DWORD));
-    if (dw != IMAGE_NT_SIGNATURE) {
-	return;
-    }
+    //IMAGE_FIRST_SECTION(ntHdr);
+#if 0
     ImageHdrOffset += sizeof(DWORD);
     p += sizeof(DWORD);
 
@@ -1344,10 +1360,13 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
     //
     ptr = &poh->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
     ReadSubprocessMemory(proc, ptr, &dataDir, sizeof(IMAGE_DATA_DIRECTORY));
+#endif
+
+    dataDir = ntHdr.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
 
     // This points us to the exports section
     //
-    ptr = (PVOID) (base + dataDir.VirtualAddress);
+    ptr = (PVOID) ((PBYTE)base + dataDir.VirtualAddress);
     ped = (PIMAGE_EXPORT_DIRECTORY) ptr;
     ReadSubprocessMemory(proc, ptr, &exportDir, sizeof(IMAGE_EXPORT_DIRECTORY));
 
@@ -1355,7 +1374,7 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
     //
     ptr = &ped->Name;
     ReadSubprocessMemory(proc, ptr, &dw, sizeof(DWORD));
-    ptr = (PVOID) (base + dw);
+    ptr = (PVOID) ((PBYTE)base + dw);
     ReadSubprocessStringA(proc, ptr, dllname, sizeof(dllname));
 
     if (dllname[0] == '\0') {
@@ -1381,10 +1400,10 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 	return;
     }
 
-    ptr = (PVOID) (base + (DWORD) exportDir.AddressOfNames);
+    ptr = (PVOID) ((PBYTE)base + exportDir.AddressOfNames);
     for (n = 0; n < exportDir.NumberOfNames; n++) {
 	ReadSubprocessMemory(proc, ptr, &dw, sizeof(DWORD));
-	namePtr = (PVOID) (base + dw);
+	namePtr = ((PBYTE)base + dw);
 
 	// Now, we should hopefully have a pointer to the name of the
 	// function, so lets get it.
@@ -1403,34 +1422,28 @@ ConsoleDebugger::OnXLoadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 	//
 	PVOID funcOrdPtr;
 	WORD funcOrd;
-	funcOrdPtr = (PVOID) (base + (n * sizeof(WORD)) +
-			      (DWORD) exportDir.AddressOfNameOrdinals);
+	funcOrdPtr = (PVOID) ((PBYTE)base + (n * sizeof(WORD)) +
+			      exportDir.AddressOfNameOrdinals);
 	ReadSubprocessMemory(proc, funcOrdPtr, &funcOrd, sizeof(WORD));
 
 	// Keep a list of all function names in a hash table
 	//
-	funcPtr = (PVOID) (base + (funcOrd * sizeof(DWORD)) +
+	funcPtr = (PVOID) ((PBYTE)base + (funcOrd * sizeof(DWORD)) +
 			   (DWORD) exportDir.AddressOfFunctions);
 #endif
 	ReadSubprocessMemory(proc, funcPtr, &dw, sizeof(DWORD));
-	funcPtr = (PVOID) (base + dw);
+	funcPtr = (PVOID) ((PBYTE)base + dw);
 
 	proc->funcTable.Add(funcName, funcPtr);
 
-	ptr = (PVOID) (sizeof(DWORD) + (ULONG) ptr);
+	ptr = (PVOID) ((PBYTE)ptr + sizeof(DWORD));
     }
-    /*
-     * XXX: Is the CloseHandle correct?  This indicates it might be:
-     * http://msdn.microsoft.com/library/en-us/debug/base/writing_the_debugger_s_main_loop.asp
-     CloseHandle(info->hFile);
-    */
 #if 0
-    // The IMAGE_SECTION_HEADER comes after the IMAGE_OPTIONAL_HEADER
-    // (if the IMAGE_OPTIONAL_HEADER exists)
-    //
-    p += w;
-
-    psh = (PIMAGE_SECTION_HEADER) p;
+    /*
+     * Is the CloseHandle correct?  This indicates it might be:
+     * http://msdn.microsoft.com/library/en-us/debug/base/writing_the_debugger_s_main_loop.asp
+     */
+     CloseHandle(info->hFile);
 #endif
 }
 
@@ -1463,9 +1476,9 @@ ConsoleDebugger::OnXUnloadDll(Process *proc, LPDEBUG_EVENT pDebEvent)
 	if (modPtr->modName) {
 	    delete [] modPtr->modName;
 	}
-	if (modPtr->dbgInfo) {
-	    UnmapDebugInformation(modPtr->dbgInfo);
-	}
+	//if (modPtr->dbgInfo) {
+	//    UnmapDebugInformation(modPtr->dbgInfo);
+	//}
 	delete modPtr;
     }
 }
@@ -1567,8 +1580,17 @@ ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     ThreadInfo *tinfo;
     Breakpoint *pbrkpt, *brkpt;
     PDWORD pdw;
-    DWORD i;
-    DWORD dw;
+    DWORD_PTR i;
+    DWORD_PTR dw;
+
+// adjust for porting
+#if _WIN64
+#define context_Esp context.Rsp
+#define context_Eax context.Rax
+#else
+#define context_Esp context.Esp
+#define context_Eax context.Eax
+#endif
 
     for (tinfo = proc->threadList; tinfo != 0L; tinfo = tinfo->nextPtr) {
 	if (pDebEvent->dwThreadId == tinfo->dwThreadId) {
@@ -1610,25 +1632,25 @@ ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 	// Get the arguments to the function and store them in the thread
 	// specific data structure.
 	for (pdw = tinfo->args, i=0; i < brkpt->breakInfo->nargs; i++, pdw++) {
-	    ReadSubprocessMemory(proc, (PVOID) (context.Esp+(4*(i+1))),
+	    ReadSubprocessMemory(proc, (PVOID) ((PBYTE)context_Esp+(4*(i+1))),
 				 pdw, sizeof(DWORD));
 	}
 	tinfo->nargs = brkpt->breakInfo->nargs;
 	tinfo->context = &context;
 
 	if (brkpt->breakInfo->dwFlags & BREAK_IN) {
-	    ((this)->*(brkpt->breakInfo->breakProc))(proc, tinfo, brkpt, &context.Eax, BREAK_IN);
+	    ((this)->*(brkpt->breakInfo->breakProc))(proc, tinfo, brkpt, &context_Eax, BREAK_IN);
 	}
 
 	// Only set a return breakpoint if something is interested
 	// in the return value
 	if (brkpt->breakInfo->dwFlags & BREAK_OUT) {
 	    bpt = new Breakpoint;
-	    ReadSubprocessMemory(proc, (PVOID) context.Esp,
-		&bpt->origRetAddr, sizeof(DWORD));
-	    dw = (DWORD) brkpt->codeReturnPtr;
-	    WriteSubprocessMemory(proc, (PVOID) context.Esp,
-		&dw, sizeof(DWORD));
+	    ReadSubprocessMemory(proc, (PVOID) context_Esp,
+		&bpt->origRetAddr, sizeof(DWORD_PTR));
+	    dw = (DWORD_PTR) brkpt->codeReturnPtr;
+	    WriteSubprocessMemory(proc, (PVOID) context_Esp,
+		&dw, sizeof(DWORD_PTR));
 	    bpt->codePtr = brkpt->codeReturnPtr;
 	    bpt->returning = TRUE;
 	    bpt->codeReturnPtr = 0L;	// Doesn't matter
@@ -1655,7 +1677,7 @@ ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     } else {
 	// Make the callback with the params and the return value
 	if (brkpt->breakInfo->dwFlags & BREAK_OUT) {
-	    ((this)->*(brkpt->breakInfo->breakProc))(proc, tinfo, brkpt, &context.Eax, BREAK_OUT);
+	    ((this)->*(brkpt->breakInfo->breakProc))(proc, tinfo, brkpt, &context_Eax, BREAK_OUT);
 	}
 	context.Eip = brkpt->origRetAddr;
 
@@ -1669,6 +1691,8 @@ ConsoleDebugger::OnXBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
     SetThreadContext(tinfo->hThread, &context);
 
     return TRUE;
+
+#undef context_Esp
 }
 
 /*
