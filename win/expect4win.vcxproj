@@ -103,7 +103,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BUILD_exp;USE_TCL_STUBS;USE_DETOURS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Users\davygrvy\tcl_src\generic;C:\Users\davygrvy\tcl_src\win;$(SolutionDir)generic;$(SolutionDir)win;$(SolutionDir)win\Mcl;$(SolutionDir)win\Detours</AdditionalIncludeDirectories>
     </ClCompile>
@@ -160,6 +160,7 @@
     <ClInclude Include="..\generic\expPort.h" />
     <ClInclude Include="Detours\detours.h" />
     <ClInclude Include="expWinConsoleDebugger.hpp" />
+    <ClInclude Include="expWinConsoleDetourer.hpp" />
     <ClInclude Include="expWinErr.h" />
     <ClInclude Include="expWinMessage.hpp" />
     <ClInclude Include="expWinPort.h" />

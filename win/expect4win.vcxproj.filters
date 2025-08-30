@@ -113,6 +113,9 @@
     <ClInclude Include="..\generic\expDecls.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="expWinConsoleDetourer.hpp">
+      <Filter>win</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\generic\exp_chan.c">
