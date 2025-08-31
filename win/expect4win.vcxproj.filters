@@ -229,6 +229,9 @@
     <ClCompile Include="..\compat\exp_strf.c">
       <Filter>compat</Filter>
     </ClCompile>
+    <ClCompile Include="expWinConsoleDetourer.cpp">
+      <Filter>win</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Mcl\readme.txt">

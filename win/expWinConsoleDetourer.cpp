@@ -27,7 +27,7 @@
 
 #include "expWinPort.h"
 #include "expWinConsoleDetourer.hpp"
-#include "expWinTrampolineIPC.hpp"
+//#include "expWinTrampolineIPC.hpp"
 #include "Detours\detours.h"
 #ifdef _WIN64
 #   pragma comment (lib,"detours64.lib")
@@ -90,7 +90,8 @@ ConsoleDebugger::~ConsoleDebugger()
 unsigned
 ConsoleDebugger::ThreadHandlerProc(void)
 {
-    DWORD ok, exitcode;
+    BOOL ok;
+    DWORD exitcode;
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
     DWORD createFlags = 0;
@@ -108,7 +109,7 @@ ConsoleDebugger::ThreadHandlerProc(void)
     si.dwFlags = STARTF_FORCEONFEEDBACK | STARTF_USESHOWWINDOW |
 	STARTF_USECOUNTCHARS;
 
-    createFlags = DEBUG_PROCESS |	// <- Oh, so important!
+    createFlags = 
 	CREATE_NEW_CONSOLE |		// Yes, please.
 	CREATE_DEFAULT_ERROR_MODE |	// Is this correct so error dialogs don't pop up?
 	(expWinProcs->useWide ? CREATE_UNICODE_ENVIRONMENT : 0);
@@ -131,7 +132,7 @@ ConsoleDebugger::ThreadHandlerProc(void)
 #endif
 
 
-    ok = expWinProcs->detourCreateProcessWithDlls(
+    ok = expWinProcs->detourCreateProcessWithDllProc(
 	    0L,		// Module name (not needed).
 	    cmdline,	// Command line string (must be writable!).
 	    0L,		// Process handle will not be inheritable.
@@ -142,9 +143,8 @@ ConsoleDebugger::ThreadHandlerProc(void)
 	    dir,	// Use custom starting directory, or parent's if NULL.
 	    &si,	// Pointer to STARTUPINFO structure.
 	    &pi,	// Pointer to PROCESS_INFORMATION structure.
-	    1,
-	    &trampPath,
-	    NULL);
+	    trampPath,
+	    NULL);	// we aren't overloading CreateProcess()
 
 
     if (!ok) {
@@ -162,7 +162,7 @@ ConsoleDebugger::ThreadHandlerProc(void)
     exitcode = CommonDetourer();
 
 #ifdef EXP_DEBUG
-    expDiagLog("ConsoleDebugger::ThreadHandlerProc: %x\n",
+    expDiagLog("ConsoleDetourer::ThreadHandlerProc: %x\n",
 	       exitcode);
 #endif
     NotifyDone();
@@ -172,12 +172,12 @@ ConsoleDebugger::ThreadHandlerProc(void)
 /*
  *----------------------------------------------------------------------
  *
- * ConsoleDebugger::CommonDebugger --
+ * ConsoleDetourer::CommonDetourer --
  *
  *	This is the function that is the debugger for all slave processes
  *
  * Results:
- *	None.  This thread exits with ExitThread() when the subprocess dies.
+ *	Not used.  This thread exits when the subprocess closes.
  *
  * Side Effects:
  *	Adds the process to the things being waited for by
@@ -188,8 +188,14 @@ ConsoleDebugger::ThreadHandlerProc(void)
 DWORD
 ConsoleDetourer::CommonDetourer()
 {
+    // TODO:
+    // 1. setup IPC pathways, check status
     readyUp.Set();
-    return WM_QUIT; //TODO: just a placeholder for now
+    // 2. wait on fromTrampIPC mailbox
+    // 3. send it to WriteMaster if correct type, else other or exit.
+    // 4. rinse, repeat.
+
+    return WM_QUIT;
 }
 
 void
@@ -286,24 +292,24 @@ ConsoleDetourer::EnterInteract (HANDLE OutConsole)
 void
 ConsoleDetourer::ExitInteract ()
 {
-//    interactingConsole = 0L;
+    //interactingConsole = 0L;
     //interacting = false;
 }
 
-const DWORD ConsoleDebugger::KEY_CONTROL= 0;
-const DWORD ConsoleDebugger::KEY_SHIFT	= 1;
-const DWORD ConsoleDebugger::KEY_LSHIFT	= 1;
-const DWORD ConsoleDebugger::KEY_RSHIFT	= 2;
-const DWORD ConsoleDebugger::KEY_ALT	= 3;
+const DWORD ConsoleDetourer::KEY_CONTROL= 0;
+const DWORD ConsoleDetourer::KEY_SHIFT	= 1;
+const DWORD ConsoleDetourer::KEY_LSHIFT	= 1;
+const DWORD ConsoleDetourer::KEY_RSHIFT	= 2;
+const DWORD ConsoleDetourer::KEY_ALT	= 3;
 
-const ConsoleDebugger::KEY_MATRIX ConsoleDebugger::ModifierKeyArray[] = {
+const ConsoleDetourer::KEY_MATRIX ConsoleDetourer::ModifierKeyArray[] = {
 /* Control */	{ 17,  29, 0},
 /* LShift */	{ 16,  42, 0},
 /* RShift */	{ 16,  54, 0},
 /* Alt */	{ 18,  56, 0}
 };
 
-const ConsoleDebugger::KEY_MATRIX ConsoleDebugger::AsciiToKeyArray[] = {
+const ConsoleDetourer::KEY_MATRIX ConsoleDetourer::AsciiToKeyArray[] = {
 /*   0 */	{ 50,   3, RIGHT_CTRL_PRESSED|SHIFT_PRESSED},
 /*   1 */	{ 65,  30, RIGHT_CTRL_PRESSED},
 /*   2 */	{ 66,  48, RIGHT_CTRL_PRESSED},
@@ -438,7 +444,7 @@ const ConsoleDebugger::KEY_MATRIX ConsoleDebugger::AsciiToKeyArray[] = {
 #endif
 };
 
-const ConsoleDebugger::KEY_MATRIX ConsoleDebugger::FunctionToKeyArray[] = {
+const ConsoleDetourer::KEY_MATRIX ConsoleDetourer::FunctionToKeyArray[] = {
 /* Cursor Up */	    {VK_UP,      72,	0},
 /* Cursor Down */   {VK_DOWN,    80,	0},
 /* Cursor Right */  {VK_RIGHT,   77,	0},
@@ -472,40 +478,40 @@ const ConsoleDebugger::KEY_MATRIX ConsoleDebugger::FunctionToKeyArray[] = {
 /* F20 */	    {VK_F20,      0,	0}
 };
 
-const DWORD ConsoleDebugger::KEY_UP	= 0;
-const DWORD ConsoleDebugger::KEY_DOWN	= 1;
-const DWORD ConsoleDebugger::KEY_RIGHT	= 2;
-const DWORD ConsoleDebugger::KEY_LEFT	= 3;
-const DWORD ConsoleDebugger::KEY_END	= 4;
-const DWORD ConsoleDebugger::KEY_HOME	= 5;
-const DWORD ConsoleDebugger::KEY_PAGEUP	= 6;
-const DWORD ConsoleDebugger::KEY_PAGEDOWN= 7;
-const DWORD ConsoleDebugger::KEY_INSERT	= 8;
-const DWORD ConsoleDebugger::KEY_DELETE	= 9;
-const DWORD ConsoleDebugger::KEY_SELECT	= 10;
-const DWORD ConsoleDebugger::KEY_F1	= 11;
-const DWORD ConsoleDebugger::KEY_F2	= 12;
-const DWORD ConsoleDebugger::KEY_F3	= 13;
-const DWORD ConsoleDebugger::KEY_F4	= 14;
-const DWORD ConsoleDebugger::KEY_F5	= 15;
-const DWORD ConsoleDebugger::KEY_F6	= 16;
-const DWORD ConsoleDebugger::KEY_F7	= 17;
-const DWORD ConsoleDebugger::KEY_F8	= 18;
-const DWORD ConsoleDebugger::KEY_F9	= 19;
-const DWORD ConsoleDebugger::KEY_F10	= 20;
-const DWORD ConsoleDebugger::KEY_F11	= 21;
-const DWORD ConsoleDebugger::KEY_F12	= 22;
-const DWORD ConsoleDebugger::KEY_F13	= 23;
-const DWORD ConsoleDebugger::KEY_F14	= 24;
-const DWORD ConsoleDebugger::KEY_F15	= 25;
-const DWORD ConsoleDebugger::KEY_F16	= 26;
-const DWORD ConsoleDebugger::KEY_F17	= 27;
-const DWORD ConsoleDebugger::KEY_F18	= 28;
-const DWORD ConsoleDebugger::KEY_F19	= 29;
-const DWORD ConsoleDebugger::KEY_F20	= 30;
-const DWORD ConsoleDebugger::WIN_RESIZE	= 31;
+const DWORD ConsoleDetourer::KEY_UP	= 0;
+const DWORD ConsoleDetourer::KEY_DOWN	= 1;
+const DWORD ConsoleDetourer::KEY_RIGHT	= 2;
+const DWORD ConsoleDetourer::KEY_LEFT	= 3;
+const DWORD ConsoleDetourer::KEY_END	= 4;
+const DWORD ConsoleDetourer::KEY_HOME	= 5;
+const DWORD ConsoleDetourer::KEY_PAGEUP	= 6;
+const DWORD ConsoleDetourer::KEY_PAGEDOWN= 7;
+const DWORD ConsoleDetourer::KEY_INSERT	= 8;
+const DWORD ConsoleDetourer::KEY_DELETE	= 9;
+const DWORD ConsoleDetourer::KEY_SELECT	= 10;
+const DWORD ConsoleDetourer::KEY_F1	= 11;
+const DWORD ConsoleDetourer::KEY_F2	= 12;
+const DWORD ConsoleDetourer::KEY_F3	= 13;
+const DWORD ConsoleDetourer::KEY_F4	= 14;
+const DWORD ConsoleDetourer::KEY_F5	= 15;
+const DWORD ConsoleDetourer::KEY_F6	= 16;
+const DWORD ConsoleDetourer::KEY_F7	= 17;
+const DWORD ConsoleDetourer::KEY_F8	= 18;
+const DWORD ConsoleDetourer::KEY_F9	= 19;
+const DWORD ConsoleDetourer::KEY_F10	= 20;
+const DWORD ConsoleDetourer::KEY_F11	= 21;
+const DWORD ConsoleDetourer::KEY_F12	= 22;
+const DWORD ConsoleDetourer::KEY_F13	= 23;
+const DWORD ConsoleDetourer::KEY_F14	= 24;
+const DWORD ConsoleDetourer::KEY_F15	= 25;
+const DWORD ConsoleDetourer::KEY_F16	= 26;
+const DWORD ConsoleDetourer::KEY_F17	= 27;
+const DWORD ConsoleDetourer::KEY_F18	= 28;
+const DWORD ConsoleDetourer::KEY_F19	= 29;
+const DWORD ConsoleDetourer::KEY_F20	= 30;
+const DWORD ConsoleDetourer::WIN_RESIZE	= 31;
 
-const ConsoleDebugger::FUNCTION_KEY ConsoleDebugger::VtFunctionKeys[] = {
+const ConsoleDetourer::FUNCTION_KEY ConsoleDetourer::VtFunctionKeys[] = {
     {"OP",	KEY_F1},
     {"OQ",	KEY_F2},
     {"OR",	KEY_F3},
@@ -546,7 +552,7 @@ const ConsoleDebugger::FUNCTION_KEY ConsoleDebugger::VtFunctionKeys[] = {
 };
 
 DWORD
-ConsoleDebugger::MapCharToIRs (CHAR c)
+ConsoleDetourer::MapCharToIRs (CHAR c)
 {
 #ifndef IPC_MAXRECORDS // Only used if we send single key events
     UCHAR lc;
@@ -646,7 +652,7 @@ ConsoleDebugger::MapCharToIRs (CHAR c)
 
 #ifndef IPC_MAXRECORDS // not used
 DWORD
-ConsoleDebugger::MapFKeyToIRs(DWORD fk)
+ConsoleDetourer::MapFKeyToIRs(DWORD fk)
 {
     IPCMsg msg;
     DWORD result;
@@ -698,7 +704,7 @@ ConsoleDebugger::MapFKeyToIRs(DWORD fk)
  */
 
 int
-ConsoleDebugger::FindEscapeKey(LPCSTR buf, SIZE_T buflen)
+ConsoleDetourer::FindEscapeKey(LPCSTR buf, SIZE_T buflen)
 {
     DWORD len;
     int i;
@@ -720,7 +726,7 @@ ConsoleDebugger::FindEscapeKey(LPCSTR buf, SIZE_T buflen)
 }
 
 int
-ConsoleDebugger::Write (LPCSTR buffer, SIZE_T length, LPDWORD err)
+ConsoleDetourer::Write (LPCSTR buffer, SIZE_T length, LPDWORD err)
 {
 #ifndef IPC_MAXRECORDS
     SIZE_T i;

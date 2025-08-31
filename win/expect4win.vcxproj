@@ -212,6 +212,7 @@
     <ClCompile Include="expWinCommand.c" />
     <ClCompile Include="expWinConsoleDebugger.cpp" />
     <ClCompile Include="expWinConsoleDebuggerBreakPoints.cpp" />
+    <ClCompile Include="expWinConsoleDetourer.cpp" />
     <ClCompile Include="expWinInit.c" />
     <ClCompile Include="expWinMessage.cpp" />
     <ClCompile Include="expWinSpawnChan.cpp" />

@@ -47,7 +47,10 @@
 /* load the error codes. */
 #include "expWinErr.h"
 
+/* for compat/exp_strf.c */
 #define HAVE_SV_TIMEZONE    1
+#define tzname _tzname
+#define daylight _daylight
 
 typedef struct {
     int useWide;
@@ -60,6 +63,11 @@ typedef struct {
     DWORD (WINAPI *getShortPathNameProc)(const TCHAR *, TCHAR *, DWORD); 
     DWORD (WINAPI *searchPathProc)(const TCHAR *, const TCHAR *, 
 	    const TCHAR *, DWORD, TCHAR *, TCHAR **);
+    BOOL (WINAPI *detourCreateProcessWithDllProc)(const TCHAR *, TCHAR *, LPSECURITY_ATTRIBUTES,
+            LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, const TCHAR *, LPSTARTUPINFO,
+	    LPPROCESS_INFORMATION, LPCSTR, BOOL(WINAPI* createProcessProc)(const TCHAR *, TCHAR *,
+		LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD,
+		LPVOID, const TCHAR *, LPSTARTUPINFO, LPPROCESS_INFORMATION));
 } ExpWinProcs;
 
 TCL_EXTERNC ExpWinProcs *expWinProcs;

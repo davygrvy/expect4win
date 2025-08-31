@@ -26,6 +26,7 @@
  */
 
 #include "expWinPort.h"
+#include "Detours/detours.h"
 
 #ifdef _MSC_VER
     /* Only do this when MSVC++ is compiling us. */
@@ -53,7 +54,8 @@ static ExpWinProcs expAsciiProcs = {
     CreateProcessA,
     GetFileAttributesA,
     GetShortPathNameA,
-    SearchPathA
+    SearchPathA,
+    DetourCreateProcessWithDllA
 };
 
 static ExpWinProcs expUnicodeProcs = {
@@ -62,7 +64,12 @@ static ExpWinProcs expUnicodeProcs = {
     (BOOL (WINAPI *)(const TCHAR *, TCHAR *, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, const TCHAR *, LPSTARTUPINFO, LPPROCESS_INFORMATION)) CreateProcessW,
     (DWORD (WINAPI *)(const TCHAR *)) GetFileAttributesW,
     (DWORD (WINAPI *)(const TCHAR *, TCHAR *, DWORD)) GetShortPathNameW,
-    (DWORD (WINAPI *)(const TCHAR *, const TCHAR *, const TCHAR *, DWORD, TCHAR *, TCHAR **)) SearchPathW
+    (DWORD (WINAPI *)(const TCHAR *, const TCHAR *, const TCHAR *, DWORD, TCHAR *, TCHAR **)) SearchPathW,
+    (BOOL (WINAPI *)(const TCHAR *, TCHAR *, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES,
+	    BOOL, DWORD, LPVOID, const TCHAR *, LPSTARTUPINFO, LPPROCESS_INFORMATION,
+	    LPCSTR, BOOL (WINAPI *)(const TCHAR *, TCHAR *, LPSECURITY_ATTRIBUTES,
+	    LPSECURITY_ATTRIBUTES, BOOL, DWORD,	LPVOID, const TCHAR *, LPSTARTUPINFO,
+	    LPPROCESS_INFORMATION))) DetourCreateProcessWithDllW
 };
 
 ExpWinProcs *expWinProcs = &expAsciiProcs;
