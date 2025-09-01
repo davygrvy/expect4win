@@ -28,7 +28,9 @@
  * ----------------------------------------------------------------------------
  */
 
-#include "CMcl.h"
+#include "Mcl/CMcl.h"
+#include <strsafe.h>
+#include <stdlib.h>
 #include "expWinInjectorIPC.hpp"
 
 class Injector : public CMclThreadHandler
@@ -36,7 +38,7 @@ class Injector : public CMclThreadHandler
     CMclMailbox *ConsoleDebuggerIPC;
     HANDLE console;
     CMclEvent *interrupt;
-    char sysMsgSpace[512];
+    TCHAR sysMsgSpace[512];
 
 public:
 
@@ -50,11 +52,12 @@ private:
 
     virtual unsigned ThreadHandlerProc(void)
     {
-	CHAR boxName[50];
+	TCHAR boxName[50];
 	DWORD err, dwWritten;
 	IPCMsg msg;
 
-	wsprintf(boxName, "ExpectInjector_pid%d", GetCurrentProcessId());
+	StringCbPrintf(boxName, sizeof(boxName),
+		TEXT("ExpectInjector_pid%d"), GetCurrentProcessId());
 
 	// Create the shared memory IPC transfer mechanism by name
 	// (a mailbox).
@@ -66,10 +69,10 @@ private:
 	if (err != NO_ERROR && err != ERROR_ALREADY_EXISTS) {
 	    OutputDebugString(GetSysMsg(err));
 	    delete ConsoleDebuggerIPC;
-	    return 0x666;
+	    return EXIT_FAILURE;
 	}
 
-	OutputDebugString("Expect's injector DLL loaded and ready.\n");
+	OutputDebugString(TEXT("Expect's injector DLL loaded and ready.\n"));
 
 	// forever loop receiving messages over IPC.
 	while (ConsoleDebuggerIPC->GetAlertable(&msg, interrupt)) {
@@ -93,15 +96,15 @@ private:
 	    }
 	}
 	delete ConsoleDebuggerIPC;
-	return 0;
+	return EXIT_SUCCESS;
     }
 
-    const char *GetSysMsg(DWORD id)
+    LPCWSTR GetSysMsg(DWORD id)
     {
 	int chars;
 
-	chars = wsprintf(sysMsgSpace,
-		"Expect's injector DLL could not start IPC: [%u] ", id);
+	chars = StringCbPrintf(sysMsgSpace, sizeof(sysMsgSpace),
+		TEXT("Expect's injector DLL could not start IPC: [%u] "), id);
 	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM |
 		FORMAT_MESSAGE_IGNORE_INSERTS |
 		FORMAT_MESSAGE_MAX_WIDTH_MASK, 0L, id, 0,
@@ -121,7 +124,7 @@ DllMain (HINSTANCE hInst, ULONG ulReason, LPVOID lpReserved)
     switch (ulReason) {
     case DLL_PROCESS_ATTACH:
 	DisableThreadLibraryCalls(hInst);
-	console = CreateFile("CONIN$", GENERIC_WRITE,
+	console = CreateFile(TEXT("CONIN$"), GENERIC_WRITE,
 		FILE_SHARE_WRITE, 0L, OPEN_EXISTING, 0, 0L);
 	interrupt = new CMclEvent();
 	inject = new Injector(console, interrupt);

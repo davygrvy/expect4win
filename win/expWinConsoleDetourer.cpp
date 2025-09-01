@@ -27,7 +27,6 @@
 
 #include "expWinPort.h"
 #include "expWinConsoleDetourer.hpp"
-//#include "expWinTrampolineIPC.hpp"
 #include "Detours\detours.h"
 #ifdef _WIN64
 #   pragma comment (lib,"detours64.lib")
@@ -195,8 +194,8 @@ ConsoleDetourer::CommonDetourer()
     // 1. setup IPC pathways, check status
     readyUp.Set();
     // 2. wait on fromTrampIPC mailbox
-    // 3. send it to WriteMaster if correct type, else other or exit.
-    // 4. rinse, repeat.
+    // 3. send stuff to WriteMaster if correct type, else other or exit.
+    // 4. rinse, repeat: goto 2.
 
     return EXIT_SUCCESS;
 }
