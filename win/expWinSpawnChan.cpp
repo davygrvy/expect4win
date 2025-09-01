@@ -26,7 +26,11 @@
  */
 
 #include "expWinPort.h"
-#include "expWinConsoleDebugger.hpp"
+#ifdef USE_DETOURS
+#   include "expWinConsoleDetourer.hpp" 
+#else
+#   include "expWinConsoleDebugger.hpp"
+#endif
 
 #ifndef INVALID_SET_FILE_POINTER
 #   define INVALID_SET_FILE_POINTER ((DWORD)-1)
@@ -107,7 +111,11 @@ TCL_DECLARE_MUTEX(spawnMutex)
 
 
 /* our instanceData for our 'spawn' channel is an instance of this class. */
+#ifdef USE_DETOURS
+class ExpWinSpawnClass : public ConsoleDetourerCallback
+#else
 class ExpWinSpawnClass : public ConsoleDebuggerCallback
+#endif
 {
 public:
     LONG eventInQ;
@@ -118,13 +126,18 @@ public:
 
     ExpWinSpawnClass(TCHAR *cmdline, TCHAR *env, TCHAR *dir,
 	    int show, const TCHAR *injPath, ThreadSpecificData *_tsd)
-	: channel(0L), watchMask(0), blocking(0), eventInQ(0), tsd(_tsd)
+	: channel(0L), watchMask(0), blocking(0), eventInQ(0), tsd(_tsd), cutMask(0)
     {
 	CMclEvent readyUp;
 
 	threadId = Tcl_GetCurrentThread();
+#ifdef USE_DETOURS
+	debugger = new ConsoleDetourer(cmdline, env, dir, show, injPath, outLL,
+		errLL, readyUp, *this);
+#else
 	debugger = new ConsoleDebugger(cmdline, env, dir, show, injPath, outLL,
 		errLL, readyUp, *this);
+#endif
 	debuggerThread = new CMclThread(debugger);
 #if 1
 	// Starvation in multithreading occurs when a thread is unable to
@@ -213,7 +226,11 @@ private:
     }
     CMclLinkedList<Message *> outLL;
     CMclLinkedList<Message *> errLL;
+#ifdef USE_DETOURS
+    ConsoleDetourer* debugger;
+#else
     ConsoleDebugger *debugger;
+#endif
     CMclThread *debuggerThread;
     ThreadSpecificData *tsd;
     Tcl_ThreadId threadId;

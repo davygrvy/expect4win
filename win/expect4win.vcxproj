@@ -159,9 +159,15 @@
     <ClInclude Include="..\generic\expPlatDecls.h" />
     <ClInclude Include="..\generic\expPort.h" />
     <ClInclude Include="Detours\detours.h" />
-    <ClInclude Include="expWinConsoleDebugger.hpp" />
+    <ClInclude Include="expWinConsoleDebugger.hpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="expWinConsoleDetourer.hpp" />
     <ClInclude Include="expWinErr.h" />
+    <ClInclude Include="expWinInjectorIPC.hpp" />
     <ClInclude Include="expWinMessage.hpp" />
     <ClInclude Include="expWinPort.h" />
     <ClInclude Include="Mcl\CMcl.h" />
@@ -210,8 +216,18 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="expWinCommand.c" />
-    <ClCompile Include="expWinConsoleDebugger.cpp" />
-    <ClCompile Include="expWinConsoleDebuggerBreakPoints.cpp" />
+    <ClCompile Include="expWinConsoleDebugger.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="expWinConsoleDebuggerBreakPoints.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="expWinConsoleDetourer.cpp" />
     <ClCompile Include="expWinInit.c" />
     <ClCompile Include="expWinMessage.cpp" />

@@ -62,7 +62,7 @@ ConsoleDetourer::ConsoleDetourer(
     cmdline(_cmdline), env(_env), dir(_dir), mQ(_mQ), eQ(_eQ),
     readyUp(_readyUp), callback(_callback), show(_show),
     trampPath(_trampPath), toTrampIPC(0L), fromTrampIPC(0L),
-    interacting(false), status(NO_ERROR), pid(0), 
+    interacting(false), status(NO_ERROR), pid(0), pidKilled(0),
     hMasterConsole(INVALID_HANDLE_VALUE),
     hCopyScreenBuffer(INVALID_HANDLE_VALUE)
 {
@@ -75,7 +75,7 @@ ConsoleDetourer::ConsoleDetourer(
 	    CONSOLE_TEXTMODE_BUFFER, NULL);
 }
 
-ConsoleDebugger::~ConsoleDebugger()
+ConsoleDetourer::~ConsoleDetourer()
 {
     if (toTrampIPC) delete toTrampIPC;
     if (fromTrampIPC) delete fromTrampIPC;
@@ -88,7 +88,7 @@ ConsoleDebugger::~ConsoleDebugger()
 }
 
 unsigned
-ConsoleDebugger::ThreadHandlerProc(void)
+ConsoleDetourer::ThreadHandlerProc(void)
 {
     BOOL ok;
     DWORD exitcode;
@@ -115,26 +115,27 @@ ConsoleDebugger::ThreadHandlerProc(void)
 	(expWinProcs->useWide ? CREATE_UNICODE_ENVIRONMENT : 0);
 
 #if 1
-    // Starvation in multithreading occurs when a thread is unable to
-    // progress or execute tasks despite being ready to run, mainly due
-    // to consistent denial of access to essential resources such as the
-    // CPU. This phenomenon significantly impacts the overall performance
-    // and responsiveness of a multithreaded application.
-    
-    // if someone outside us is being a resource hog, it isn't fixed
-    // by us raising our priority.  It becomes an arms race, a race to
-    // the bottom.
+    /*
+     * Starvation in multithreading occurs when a thread is unable to
+     * progress or execute tasks despite being ready to run, mainly due
+     * to consistent denial of access to essential resources such as the
+     * CPU. This phenomenon significantly impacts the overall performance
+     * and responsiveness of a multithreaded application.
+     *
+     * if someone outside us is being a resource hog, it isn't fixed
+     * by us raising our priority.  It becomes an arms race, a race to
+     * the bottom.
+     */
 
-    /* Magic env var to raise expect priority */
+    /* Magic env var to raise slave priority */
     if (getenv("EXPECT_SLAVE_HIGH_PRIORITY") != NULL) {
 	createFlags |= ABOVE_NORMAL_PRIORITY_CLASS;
     }
 #endif
 
-
-    ok = expWinProcs->detourCreateProcessWithDllProc(
+    ok = expWinProcs->detourCreateProcessWithDllExProc(
 	    0L,		// Module name (not needed).
-	    cmdline,	// Command line string (must be writable!).
+	    cmdline,	// Command line string (must be writable).
 	    0L,		// Process handle will not be inheritable.
 	    0L,		// Thread handle will not be inheritable.
 	    FALSE,	// No handle inheritance.
@@ -143,7 +144,9 @@ ConsoleDebugger::ThreadHandlerProc(void)
 	    dir,	// Use custom starting directory, or parent's if NULL.
 	    &si,	// Pointer to STARTUPINFO structure.
 	    &pi,	// Pointer to PROCESS_INFORMATION structure.
-	    trampPath,
+	    trampPath,  // path to our 64-bit trampoline DLL (Detours replaces '64'
+			//   with '32' in the filename when instrumenting
+			//   a 32-bit app.
 	    NULL);	// we aren't overloading CreateProcess()
 
 
@@ -195,7 +198,7 @@ ConsoleDetourer::CommonDetourer()
     // 3. send it to WriteMaster if correct type, else other or exit.
     // 4. rinse, repeat.
 
-    return WM_QUIT;
+    return EXIT_SUCCESS;
 }
 
 void
@@ -264,10 +267,10 @@ ConsoleDetourer::Write (IPCMsg *msg)
      * Also check to see if the pid is already dead through other means
      * (like an outside kill). [Bug 33826]
      */
-    if (injectorIPC == 0L || pidKilled) {
+    if (toTrampIPC == 0L || pidKilled) {
 	result = ERROR_BROKEN_PIPE;
-    } else if (! injectorIPC->Post(msg)) {
-	result = injectorIPC->Status();
+    } else if (!toTrampIPC->Post(msg)) {
+	result = toTrampIPC->Status();
     }
 
     return result;

@@ -55,7 +55,7 @@ static ExpWinProcs expAsciiProcs = {
     GetFileAttributesA,
     GetShortPathNameA,
     SearchPathA,
-    DetourCreateProcessWithDllA
+    DetourCreateProcessWithDllExA
 };
 
 static ExpWinProcs expUnicodeProcs = {
@@ -69,7 +69,7 @@ static ExpWinProcs expUnicodeProcs = {
 	    BOOL, DWORD, LPVOID, const TCHAR *, LPSTARTUPINFO, LPPROCESS_INFORMATION,
 	    LPCSTR, BOOL (WINAPI *)(const TCHAR *, TCHAR *, LPSECURITY_ATTRIBUTES,
 	    LPSECURITY_ATTRIBUTES, BOOL, DWORD,	LPVOID, const TCHAR *, LPSTARTUPINFO,
-	    LPPROCESS_INFORMATION))) DetourCreateProcessWithDllW
+	    LPPROCESS_INFORMATION))) DetourCreateProcessWithDllExW
 };
 
 ExpWinProcs *expWinProcs = &expAsciiProcs;
@@ -96,6 +96,13 @@ int
 ExpWinInit(Tcl_Interp *interp)
 {
     if (!initialized) {
+	/*
+	 * See TIP 487.  Pre-XP is gone.
+	 * https://core.tcl-lang.org/tips/doc/trunk/tip/487.md
+	 * 
+	 * TODO: This will be deprecated in 9.0
+	 */
+
 	if (TclWinGetPlatformId() == VER_PLATFORM_WIN32_NT) {	 
 	    expWinProcs = &expUnicodeProcs;
 	}

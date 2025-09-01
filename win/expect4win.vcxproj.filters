@@ -116,6 +116,9 @@
     <ClInclude Include="expWinConsoleDetourer.hpp">
       <Filter>win</Filter>
     </ClInclude>
+    <ClInclude Include="expWinInjectorIPC.hpp">
+      <Filter>win</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\generic\exp_chan.c">

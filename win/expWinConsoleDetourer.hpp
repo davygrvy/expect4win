@@ -33,7 +33,7 @@
 
 #include "Mcl/CMcl.h"
 #include "expWinMessage.hpp"
-//#include "expWinTrampolineIPC.hpp"
+#include "expWinInjectorIPC.hpp"
 
 
 // callback type.
@@ -115,6 +115,8 @@ private:
     CMclMailbox* fromTrampIPC;	// IPC transfer mechanism from the trampoline dll.
 
     bool interacting;
+    int show;			// show the child?
+
 
     DWORD status;
     DWORD pid;
@@ -124,9 +126,15 @@ private:
     TCHAR* cmdline;	// commandline string (in system encoding)
     TCHAR* env;		// environment block (in system encoding)
     TCHAR* dir;		// startup directory (in system encoding)
+    LPCSTR trampPath;
+    DWORD  pidKilled;
 
-    TCHAR* env;		// environment block (in system encoding)
-    TCHAR* dir;		// startup directory (in system encoding)
+
+    // Thread-safe message queues used for communication back to the parent.
+    //
+    CMclLinkedList<Message*>& mQ;
+    CMclLinkedList<Message*>& eQ;
+
 
     CMclEvent& readyUp;	// indicate to the parent when to unblock and check creation status.
     CMclCritSec bpCritSec;  // for locking during sensite stuff
