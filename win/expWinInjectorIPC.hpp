@@ -13,15 +13,20 @@
  * dollars.  Therefore it is public domain.  However, the author and NIST
  * would appreciate credit if this program or parts of it are used.
  * 
+ * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the
+ *	first WinNT port.
+ *
  * Copyright (c) 2001-2002 Telindustrie, LLC
  * Copyright (c) 2003-2005 ActiveState Corporation
- *	Work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
- *	Based on work by Gordon Chaffee <chaffee@bmrc.berkeley.edu>
+ * Copyright (c) 2025 Liquid State Engineering
+ *	work by David Gravereaux <davygrvy@pobox.com> for the stubs
+ *	enabled extension, scary C++, and later Detours migration in 2025.
  *
  * ----------------------------------------------------------------------------
- * URLs:    http://expect.nist.gov/
+ * URLs:    https://www.nist.gov/services-resources/software/expect
  *	    http://expect.sf.net/
- *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ *	    https://web.archive.org/web/19980220232311/http://www.bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
  * RCS: @(#) $Id: expWinInjectorIPC.hpp,v 1.1.2.3 2003/08/26 20:46:52 davygrvy Exp $
  * ----------------------------------------------------------------------------
@@ -36,19 +41,8 @@ enum IPCMsgtype {IRECORD, CTRL_EVENT};
 
 typedef struct {
     IPCMsgtype type;
-#ifdef IPC_MAXRECORDS
-    /*
-     * This variant allow for grouped keypress events when writing
-     * to the console.  Appears to correct bug 35440.
-     */
     DWORD event;     /* This represents irecord length if type == IRECORD */
     INPUT_RECORD irecord[IPC_MAXRECORDS];
-#else
-    union {
-	DWORD event;
-	INPUT_RECORD irecord;
-    };
-#endif
 } IPCMsg;
 
 #define IPC_NUMSLOTS 50

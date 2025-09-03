@@ -7,22 +7,25 @@
  * ----------------------------------------------------------------------------
  *
  * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
- * 
+ *
  * Design and implementation of this program was paid for by U.S. tax
  * dollars.  Therefore it is public domain.  However, the author and NIST
  * would appreciate credit if this program or parts of it are used.
- * 
+ *
  * Copyright (c) 1997 Mitel Corporation
- *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the WinNT port.
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the
+ *	first WinNT port.
  *
  * Copyright (c) 2001-2002 Telindustrie, LLC
  * Copyright (c) 2003-2005 ActiveState Corporation
- *	work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
+ * Copyright (c) 2025 Liquid State Engineering
+ *	work by David Gravereaux <davygrvy@pobox.com> for the stubs
+ *	enabled extension, scary C++, and later Detours migration in 2025.
  *
  * ----------------------------------------------------------------------------
- * URLs:    http://expect.nist.gov/
+ * URLs:    https://www.nist.gov/services-resources/software/expect
  *	    http://expect.sf.net/
- *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ *	    https://web.archive.org/web/19980220232311/http://www.bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
  * RCS: @(#) $Id: expWinInjectorMain.cpp,v 1.1.2.16 2003/08/26 20:46:52 davygrvy Exp $
  * ----------------------------------------------------------------------------
@@ -38,12 +41,14 @@ class Injector : public CMclThreadHandler
     CMclMailbox *ConsoleDebuggerIPC;
     HANDLE console;
     CMclEvent *interrupt;
-    TCHAR sysMsgSpace[512];
+#define SYSMSG_CHARS 512
+    TCHAR sysMsgSpace[SYSMSG_CHARS];
 
 public:
 
     Injector(HANDLE _console, CMclEvent *_interrupt) 
-	: console(_console), interrupt(_interrupt), ConsoleDebuggerIPC(0L)
+	: console(_console), interrupt(_interrupt), ConsoleDebuggerIPC(0L),
+	sysMsgSpace{NULL}
     {}
     
     ~Injector() {}
@@ -67,6 +72,7 @@ private:
 	// Check status.
 	err = ConsoleDebuggerIPC->Status();
 	if (err != NO_ERROR && err != ERROR_ALREADY_EXISTS) {
+	    // TODO: come up with a better way to return this error to the user
 	    OutputDebugString(GetSysMsg(err));
 	    delete ConsoleDebuggerIPC;
 	    return EXIT_FAILURE;
@@ -74,8 +80,9 @@ private:
 
 	OutputDebugString(TEXT("Expect's injector DLL loaded and ready.\n"));
 
-	// forever loop receiving messages over IPC.
-	while (ConsoleDebuggerIPC->GetAlertable(&msg, interrupt)) {
+	// loop receiving messages over IPC until signaled to exit.
+	while (ConsoleDebuggerIPC->GetAlertable(&msg, interrupt))
+	{
 	    switch (msg.type) {
 	    case CTRL_EVENT:
 		// Generate a Ctrl+C or Ctrl+Break to cause the equivalent
@@ -85,13 +92,8 @@ private:
 	    case IRECORD:
 		// Stuff it into this console as if it had been entered
 		// by the user.
-#ifdef IPC_MAXRECORDS
-		// If IPC_MAXRECORDS is defined, we have grouped key events.
 		WriteConsoleInput(console, msg.irecord, msg.event,
 				  &dwWritten);
-#else
-		WriteConsoleInput(console, &msg.irecord, 1, &dwWritten);
-#endif
 		break;
 	    }
 	}
@@ -99,16 +101,17 @@ private:
 	return EXIT_SUCCESS;
     }
 
-    LPCWSTR GetSysMsg(DWORD id)
+    const TCHAR *
+    GetSysMsg(DWORD id)
     {
 	int chars;
 
-	chars = StringCbPrintf(sysMsgSpace, sizeof(sysMsgSpace),
+	chars = StringCbPrintf(sysMsgSpace, SYSMSG_CHARS,
 		TEXT("Expect's injector DLL could not start IPC: [%u] "), id);
-	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM |
-		FORMAT_MESSAGE_IGNORE_INSERTS |
-		FORMAT_MESSAGE_MAX_WIDTH_MASK, 0L, id, 0,
-		sysMsgSpace+chars, (512-chars),	0);
+	FormatMessage(
+		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK,
+		NULL, id, MAKELANGID(LANG_NEUTRAL,SUBLANG_SYS_DEFAULT),
+		sysMsgSpace+chars, (SYSMSG_CHARS-chars), NULL);
 	return sysMsgSpace;
     }
 };
