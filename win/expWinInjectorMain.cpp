@@ -35,23 +35,48 @@
 #include <strsafe.h>
 #include <stdlib.h>
 #include "expWinInjectorIPC.hpp"
+#ifdef USE_DETOURS
+#   include "Detours/detours.h"
+#endif
+
+#ifdef _WIN64
+#   pragma comment (lib,"detours64.lib")
+#else
+#   pragma comment (lib,"detours32.lib")
+#endif
+
 
 class Injector : public CMclThreadHandler
 {
     CMclMailbox *ConsoleDebuggerIPC;
     HANDLE console;
     CMclEvent *interrupt;
+    CMclThread* injectorThread;
 #define SYSMSG_CHARS 512
     TCHAR sysMsgSpace[SYSMSG_CHARS];
 
 public:
 
-    Injector(HANDLE _console, CMclEvent *_interrupt) 
-	: console(_console), interrupt(_interrupt), ConsoleDebuggerIPC(0L),
-	sysMsgSpace{NULL}
-    {}
+    Injector() 
+	: ConsoleDebuggerIPC(nullptr), sysMsgSpace{NULL}, injectorThread(nullptr)
+    {
+	// We already know that the exe this is being loaded into runs in the
+	// console/posix subsystem and that we created the process with a new console.
+	// No error checking is needed.
+	//
+	console = CreateFile(TEXT("CONIN$"), GENERIC_WRITE, FILE_SHARE_WRITE,
+		nullptr, OPEN_EXISTING, 0, nullptr);
+
+	interrupt = new CMclEvent();
+	injectorThread = new CMclThread(this);
+    }
     
-    ~Injector() {}
+    ~Injector()
+    {
+	interrupt->Set();
+	injectorThread->Wait(INFINITE);
+	CloseHandle(console);
+    }
 
 private:
 
@@ -59,15 +84,15 @@ private:
     {
 	TCHAR boxName[50];
 	DWORD err, dwWritten;
-	IPCMsg msg;
+	IPCtoMsg msg;
 
-	StringCbPrintf(boxName, sizeof(boxName),
-		TEXT("ExpectInjector_pid%d"), GetCurrentProcessId());
+	StringCbPrintf(
+		boxName, sizeof(boxName), IPCto_NAME, GetCurrentProcessId());
 
 	// Create the shared memory IPC transfer mechanism by name
 	// (a mailbox).
 	ConsoleDebuggerIPC = 
-		new CMclMailbox(IPC_NUMSLOTS, IPC_SLOTSIZE, boxName);
+		new CMclMailbox(IPCto_NUMSLOTS, IPCto_SLOTSIZE, boxName);
 
 	// Check status.
 	err = ConsoleDebuggerIPC->Status();
@@ -92,11 +117,11 @@ private:
 	    case IRECORD:
 		// Stuff it into this console as if it had been entered
 		// by the user.
-		WriteConsoleInput(console, msg.irecord, msg.event,
-				  &dwWritten);
+		WriteConsoleInput(console, msg.irecord, msg.event, &dwWritten);
 		break;
 	    }
 	}
+	delete interrupt;
 	delete ConsoleDebuggerIPC;
 	return EXIT_SUCCESS;
     }
@@ -116,30 +141,50 @@ private:
     }
 };
 
-CMclEvent *interrupt;
-CMclThread *injectorThread;
 Injector *inject;
-HANDLE console;
+
+BOOL
+WINAPI
+MyWriteConsoleA(
+    _In_ HANDLE hConsoleOutput,
+    _In_reads_(nNumberOfCharsToWrite) CONST VOID* lpBuffer,
+    _In_ DWORD nNumberOfCharsToWrite,
+    _Out_opt_ LPDWORD lpNumberOfCharsWritten,
+    _Reserved_ LPVOID lpReserved
+)
+{
+    // push copy of lpBuffer onto IPCfrom_NAME mailbox
+    return WriteConsoleA(hConsoleOutput, lpBuffer, nNumberOfCharsToWrite, lpNumberOfCharsWritten, lpReserved);
+};
 
 BOOL WINAPI
 DllMain (HINSTANCE hInst, ULONG ulReason, LPVOID lpReserved)
 {
+    LONG error;
+
+    // If preloading through the thunk helper, go away.
+    if (DetourIsHelperProcess()) {
+	return TRUE;
+    }
+
     switch (ulReason) {
     case DLL_PROCESS_ATTACH:
 	DisableThreadLibraryCalls(hInst);
-	console = CreateFile(TEXT("CONIN$"), GENERIC_WRITE,
-		FILE_SHARE_WRITE, 0L, OPEN_EXISTING, 0, 0L);
-	interrupt = new CMclEvent();
-	inject = new Injector(console, interrupt);
-	injectorThread = new CMclThread(inject);
+	inject = new Injector();
+
+	DetourRestoreAfterWith();
+	DetourTransactionBegin();
+	DetourUpdateThread(GetCurrentThread());
+	DetourAttach(&(PVOID&)WriteConsoleA, MyWriteConsoleA);
+	error = DetourTransactionCommit();
 	break;
     case DLL_PROCESS_DETACH:
-	interrupt->Set();
-	injectorThread->Wait(INFINITE);
-	CloseHandle(console);
-	delete interrupt;
-	delete injectorThread;
 	delete inject;
+
+	DetourTransactionBegin();
+	DetourUpdateThread(GetCurrentThread());
+	DetourDetach(&(PVOID&)WriteConsoleA, MyWriteConsoleA);
+	error = DetourTransactionCommit();
 	break;
     }
     return TRUE;

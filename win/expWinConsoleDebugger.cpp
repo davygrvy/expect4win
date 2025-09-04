@@ -368,7 +368,7 @@ ConsoleDebugger::ThreadHandlerProc(void)
 
 
 #if USE_DETOURS
-    ok = DetourCreateProcessWithDlls(
+    ok = expWinProcs->detourCreateProcessWithDllExProc(
 #else
     ok = expWinProcs->createProcessProc(
 #endif
@@ -383,9 +383,8 @@ ConsoleDebugger::ThreadHandlerProc(void)
 	    &si,	// Pointer to STARTUPINFO structure.
 #if USE_DETOURS
 	    &pi,	// Pointer to PROCESS_INFORMATION structure.
-	    1,
-	    &injPath,
-	    NULL);
+	    &injPath,	// '64' replaced in name with '32' when the executable is 32-bit
+	    NULL);	// not overloading CreateProcess()
 #else
 	    &pi);	// Pointer to PROCESS_INFORMATION structure.
 #endif
@@ -762,7 +761,7 @@ ConsoleDebugger::OnXThirdBreakpoint(Process *proc, LPDEBUG_EVENT pDebEvent)
 
     // Create the IPC connection to our loaded injector.dll
     //
-    StringCbPrintf(boxName, 50, TEXT("ExpectInjector_pid%d"), proc->pid);
+    StringCbPrintf(boxName, sizeof(boxName), IPC_NAME, proc->pid);
     injectorIPC = new CMclMailbox(IPC_NUMSLOTS, IPC_SLOTSIZE, boxName);
 
     // Check status.

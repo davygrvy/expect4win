@@ -35,17 +35,32 @@
 #ifndef INC_expWinInjectorIPC_hpp__
 #define INC_expWinInjectorIPC_hpp__
 
-enum IPCMsgtype {IRECORD, CTRL_EVENT};
+ // Note to self.  This crosses process bounderies, so always pass by value
 
-#define IPC_MAXRECORDS 80
+enum IPCtoMsgtype {IRECORD, CTRL_EVENT};
+
+#define IPCto_MAXRECORDS 80
+#define IPCto_NAME TEXT("ExpectInjector_pid%d")
 
 typedef struct {
-    IPCMsgtype type;
+    IPCtoMsgtype type;
     DWORD event;     /* This represents irecord length if type == IRECORD */
-    INPUT_RECORD irecord[IPC_MAXRECORDS];
-} IPCMsg;
+    INPUT_RECORD irecord[IPCto_MAXRECORDS];
+} IPCtoMsg;
 
-#define IPC_NUMSLOTS 50
-#define IPC_SLOTSIZE sizeof(IPCMsg)
+#define IPCto_NUMSLOTS 50
+#define IPCto_SLOTSIZE sizeof(IPCtoMsg)
+
+#define IPCfrom_NAME TEXT("ExpectDetour_pid%d")
+
+enum IPCfromMsgtype { A, B, C };
+
+typedef struct {
+    IPCfromMsgtype type;
+    DWORD todo;
+} IPCfromMsg;
+
+#define IPCfrom_NUMSLOTS 20
+#define IPCfrom_SLOTSIZE sizeof(IPCfromMsg)
 
 #endif

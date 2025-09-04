@@ -714,7 +714,7 @@ ExpWinSpawnEventSetupProc (
 
     /*
      * If any ready events exist now, avoid waiting in the notifier.
-     * This function call is very inexpensive.
+     * This function call is inexpensive.
      */
 
     if (!tsdPtr->readyQ->Empty()) {
@@ -751,7 +751,10 @@ ExpWinSpawnEventCheckProc (
     /* Disallow awaking the notifier as we aren't waiting for it anymore. */
     tsdPtr->needAwake->Reset();
 
-    /* Do we have any jobs to queue? */
+    /* 
+     * Do we have any jobs to queue?
+     * Don't let a good context go to waste, loop on them all.
+     */
     while (tsdPtr->readyQ->GetFromHeadOfList(instance, 0)) {
 	evPtr = (ExpWinSpawnEvent *) ckalloc(sizeof(ExpWinSpawnEvent));
 	evPtr->header.proc = ExpWinSpawnEventProc;
@@ -984,7 +987,7 @@ Exp_CreateSpawnChannel (
 	TclWinAddProcess(instance->Handle(), instance->Pid());
 	*pid = instance->Pid();
 	*theUglyHandleHackJob = (Tcl_Pid) instance->Handle();
-	sprintf(name, "spawn%d", spawnID++);
+	StringCbPrintf(name, sizeof(name), IPC_NAME, spawnID++);
 	newChan = Tcl_CreateChannel(&ExpWinSpawnChannelType, name,
 		instance, TCL_READABLE|TCL_WRITABLE);
 	instance->channel = newChan;
@@ -996,7 +999,7 @@ Exp_CreateSpawnChannel (
 	 * represents the communication link between the master (us) and
 	 * the slave process.
 	 */
-	sprintf(name, "ExpectInjector_pid%d", instance->Pid());
+	StringCbPrintf(name, sizeof(name), IPC_NAME, instance->Pid());
 	Tcl_SetVar2(interp,"spawn_out","slave,name",name,0);
     } else {
 	SetLastError(instance->Status());

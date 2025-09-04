@@ -63,7 +63,7 @@ public:
 	TCHAR *_dir,			// startup directory (in system encoding)
 					// These 3 maintain a reference until
 					//  _readyUp is signaled.
-	int show,			// $exp::nt_debug, shows spawned children.
+	bool show,			// $exp::nt_debug, shows spawned children.
 	LPCSTR _trampPath,		// location on the file system of the trampoline dll
 	CMclLinkedList<Message *> &_mQ,	// parent owned linkedlist for returning data stream.
 	CMclLinkedList<Message *> &_eQ,	// parent owned linkedlist for returning error stream.
@@ -88,7 +88,7 @@ public:
     inline HANDLE ConsoleScreenBuffer (void) { return hCopyScreenBuffer; }
 
     int Write (LPCSTR buffer, SIZE_T length, LPDWORD err); // send vt100 to the slave console.
-    DWORD Write (IPCMsg *msg);			    // send an INPUT_RECORD or ctrlEvent instead.
+    DWORD Write (IPCtoMsg *msg);			    // send an INPUT_RECORD or ctrlEvent instead.
 
     void EnterInteract (HANDLE OutConsole);	    // enters interact mode.
     void ExitInteract (void);			    // exits interact mode.
@@ -111,8 +111,9 @@ private:
     ConsoleDetourerCallback& callback;
 
 
-    CMclMailbox* toTrampIPC;	// IPC transfer mechanism to the trampoline dll.
-    CMclMailbox* fromTrampIPC;	// IPC transfer mechanism from the trampoline dll.
+    CMclMailbox *toTrampIPC;	// IPC transfer mechanism to the trampoline dll.
+    CMclMailbox *fromTrampIPC;	// IPC transfer mechanism from the trampoline dll.
+    CMclEvent *interrupt;
 
     bool interacting;
     int show;			// show the child?

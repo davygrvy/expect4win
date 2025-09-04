@@ -245,5 +245,8 @@
     <None Include="..\generic\exp.decls">
       <Filter>Header Files</Filter>
     </None>
+    <None Include="expWinErr.mc">
+      <Filter>win</Filter>
+    </None>
   </ItemGroup>
 </Project>

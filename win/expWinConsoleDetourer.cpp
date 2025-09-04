@@ -5,29 +5,30 @@
  *
  * ----------------------------------------------------------------------------
  *
- * Written by: Don Libes, libes@cme.nist.gov, NIST, 12/3/90
- * 
- * Design and implementation of this program was paid for by U.S. tax
- * dollars.  Therefore it is public domain.  However, the author and NIST
- * would appreciate credit if this program or parts of it are used.
- * 
+ * Copyright (c) 1997 Mitel Corporation
+ *	work by Gordon Chaffee <chaffee@bmrc.berkeley.edu> for the
+ *	first WinNT port.
+ *
  * Copyright (c) 2001-2002 Telindustrie, LLC
- * Copyright (c) 2003 ActiveState Corporation
- *	Work by David Gravereaux <davygrvy@pobox.com> for any Win32 OS.
- *	Based on work by Gordon Chaffee <chaffee@bmrc.berkeley.edu>
+ * Copyright (c) 2003-2005 ActiveState Corporation
+ * Copyright (c) 2025 Liquid State Engineering
+ *	work by David Gravereaux <davygrvy@pobox.com> for the stubs
+ *	enabled extension, scary C++, and later Detours migration in 2025.
  *
  * ----------------------------------------------------------------------------
- * URLs:    http://expect.nist.gov/
+ * URLs:    https://www.nist.gov/services-resources/software/expect
  *	    http://expect.sf.net/
- *	    http://bmrc.berkeley.edu/people/chaffee/expectnt.html
+ *	    https://web.archive.org/web/19980220232311/http://www.bmrc.berkeley.edu/people/chaffee/expectnt.html
  * ----------------------------------------------------------------------------
  * RCS: @(#) $Id:$
  * ----------------------------------------------------------------------------
  */
 
+#include <strsafe.h>
 #include "expWinPort.h"
 #include "expWinConsoleDetourer.hpp"
 #include "Detours\detours.h"
+
 #ifdef _WIN64
 #   pragma comment (lib,"detours64.lib")
 #else
@@ -51,7 +52,7 @@ ConsoleDetourer::ConsoleDetourer(
 	TCHAR *_dir,			// startup directory (in system encoding)
 					// These 3 maintain a reference until
 					//  _readyUp is signaled.
-	int _show,			// $exp::nt_debug, shows spawned children.
+	bool _show,			// $exp::nt_debug, shows spawned children.
 	LPCSTR _trampPath,		// location -=[ ON THE FILE SYSTEM!!! ]=-
 	CMclLinkedList<Message *> &_mQ,	// parent owned linkedlist for returning data stream.
 	CMclLinkedList<Message *> &_eQ,	// parent owned linkedlist for returning error stream.
@@ -60,13 +61,15 @@ ConsoleDetourer::ConsoleDetourer(
     ) :
     cmdline(_cmdline), env(_env), dir(_dir), mQ(_mQ), eQ(_eQ),
     readyUp(_readyUp), callback(_callback), show(_show),
-    trampPath(_trampPath), toTrampIPC(0L), fromTrampIPC(0L),
-    interacting(false), status(NO_ERROR), pid(0), pidKilled(0),
+    trampPath(_trampPath), toTrampIPC(nullptr), fromTrampIPC(nullptr),
+    interrupt(nullptr), interacting(false), status(NO_ERROR), pid(0),
+    pidKilled(0), fatalException(0),hRootProcess(INVALID_HANDLE_VALUE),
     hMasterConsole(INVALID_HANDLE_VALUE),
     hCopyScreenBuffer(INVALID_HANDLE_VALUE)
 {
+    interrupt = new CMclEvent();
 
-    hMasterConsole = CreateFileA("CONOUT$", GENERIC_READ|GENERIC_WRITE,
+    hMasterConsole = CreateFile(TEXT("CONOUT$"), GENERIC_READ|GENERIC_WRITE,
 	    FILE_SHARE_READ|FILE_SHARE_WRITE, 0L, OPEN_EXISTING, 0, 0L);
 
     hCopyScreenBuffer = CreateConsoleScreenBuffer(
@@ -78,6 +81,7 @@ ConsoleDetourer::~ConsoleDetourer()
 {
     if (toTrampIPC) delete toTrampIPC;
     if (fromTrampIPC) delete fromTrampIPC;
+    if (interrupt) delete interrupt;
     if (hMasterConsole != INVALID_HANDLE_VALUE) {
 	CloseHandle(hMasterConsole);
     }
@@ -133,10 +137,10 @@ ConsoleDetourer::ThreadHandlerProc(void)
 #endif
 
     ok = expWinProcs->detourCreateProcessWithDllExProc(
-	    0L,		// Module name (not needed).
+	    nullptr,	// Module name (not needed).
 	    cmdline,	// Command line string (must be writable).
-	    0L,		// Process handle will not be inheritable.
-	    0L,		// Thread handle will not be inheritable.
+	    nullptr,		// Process handle will not be inheritable.
+	    nullptr,		// Thread handle will not be inheritable.
 	    FALSE,	// No handle inheritance.
 	    createFlags,// Creation flags.
 	    env,	// Use custom environment block, or parent's if NULL.
@@ -190,12 +194,59 @@ ConsoleDetourer::ThreadHandlerProc(void)
 DWORD
 ConsoleDetourer::CommonDetourer()
 {
-    // TODO:
-    // 1. setup IPC pathways, check status
+    TCHAR boxName[50];
+    DWORD err;
+    IPCfromMsg msg;
+
+    // Create the IPC connection <<to>> our loaded injector.dll
+    //
+    StringCbPrintf(boxName, sizeof(boxName), IPCto_NAME, pid);
+    toTrampIPC = new CMclMailbox(IPCto_NUMSLOTS, IPCto_SLOTSIZE, boxName);
+
+    // Check status.
+    err = toTrampIPC->Status();
+
+    // We can be first or second.
+    if (err != NO_ERROR && err != ERROR_ALREADY_EXISTS) {
+	const char* msg = ExpWinErrMsg(err, boxName, nullptr);
+	int len = strlen(msg);
+	WriteMasterError(msg, len, ERROR_EXP_WIN32_CANT_IPC);
+	delete toTrampIPC; toTrampIPC = nullptr;
+	return EXIT_FAILURE;
+    }
+
+    // Create the IPC connection <<from>> our loaded injector.dll
+    //
+    StringCbPrintf(boxName, sizeof(boxName), IPCfrom_NAME, pid);
+    fromTrampIPC = new CMclMailbox(IPCfrom_NUMSLOTS, IPCfrom_SLOTSIZE, boxName);
+
+    // Check status.
+    err = fromTrampIPC->Status();
+
+    // We can be first or second.
+    if (err != NO_ERROR && err != ERROR_ALREADY_EXISTS) {
+	const char* msg = ExpWinErrMsg(err, boxName, nullptr);
+	int len = strlen(msg);
+	WriteMasterError(msg, len, ERROR_EXP_WIN32_CANT_IPC);
+	delete fromTrampIPC; fromTrampIPC = nullptr;
+	return EXIT_FAILURE;
+    }
+
+    // ready!
     readyUp.Set();
-    // 2. wait on fromTrampIPC mailbox
-    // 3. send stuff to WriteMaster if correct type, else other or exit.
-    // 4. rinse, repeat: goto 2.
+
+    // TODO: 2. wait on fromTrampIPC mailbox
+    while (fromTrampIPC->GetAlertable(&msg, interrupt))
+    {
+	switch (msg.type) {
+	case A:
+	case B:
+	case C:
+	    __nop();
+	}
+    // TODO: 3. send stuff to WriteMaster if correct type, else other or exit.
+    // TODO: 4. rinse, repeat: goto 2.
+    }
 
     return EXIT_SUCCESS;
 }
@@ -258,15 +309,11 @@ ConsoleDetourer::NotifyDone()
 }
 
 DWORD
-ConsoleDetourer::Write (IPCMsg *msg)
+ConsoleDetourer::Write (IPCtoMsg *msg)
 {
     DWORD result = NO_ERROR;
 
-    /*
-     * Also check to see if the pid is already dead through other means
-     * (like an outside kill). [Bug 33826]
-     */
-    if (toTrampIPC == 0L || pidKilled) {
+    if (toTrampIPC == nullptr || pidKilled) {
 	result = ERROR_BROKEN_PIPE;
     } else if (!toTrampIPC->Post(msg)) {
 	result = toTrampIPC->Status();
@@ -556,10 +603,10 @@ const ConsoleDetourer::FUNCTION_KEY ConsoleDetourer::VtFunctionKeys[] = {
 DWORD
 ConsoleDetourer::MapCharToIRs (CHAR c)
 {
-#ifndef IPC_MAXRECORDS // Only used if we send single key events
+#ifndef IPCto_MAXRECORDS // Only used if we send single key events
     UCHAR lc;
     DWORD mods, result;
-    IPCMsg msg;
+    IPCtoMsg msg;
 
     /* strip off the upper 127 */
     lc = (UCHAR) (c & 0x7f);
@@ -652,7 +699,7 @@ ConsoleDetourer::MapCharToIRs (CHAR c)
     return NO_ERROR;
 }
 
-#ifndef IPC_MAXRECORDS // not used
+#ifndef IPCto_MAXRECORDS // not used
 DWORD
 ConsoleDetourer::MapFKeyToIRs(DWORD fk)
 {
@@ -730,7 +777,7 @@ ConsoleDetourer::FindEscapeKey(LPCSTR buf, SIZE_T buflen)
 int
 ConsoleDetourer::Write (LPCSTR buffer, SIZE_T length, LPDWORD err)
 {
-#ifndef IPC_MAXRECORDS
+#ifndef IPCto_MAXRECORDS
     SIZE_T i;
     DWORD errorCode;
     int key;
@@ -762,7 +809,7 @@ ConsoleDetourer::Write (LPCSTR buffer, SIZE_T length, LPDWORD err)
     CHAR c;
     UCHAR lc;
     DWORD result;
-    IPCMsg msg;
+    IPCtoMsg msg;
 
     *err = NO_ERROR;
 
@@ -799,7 +846,7 @@ ConsoleDetourer::Write (LPCSTR buffer, SIZE_T length, LPDWORD err)
 	msg.irecord[j].Event.KeyEvent.uChar.AsciiChar = c;
 	j++;
 
-	if ((j >= IPC_MAXRECORDS-1) || (i == length-1)) {
+	if ((j >= IPCto_MAXRECORDS-1) || (i == length-1)) {
 	    /*
 	     * Write out the input records to the console.
 	     */

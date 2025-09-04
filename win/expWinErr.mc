@@ -61,7 +61,7 @@ Severity=Warning
 Facility=Io
 SymbolicName=ERROR_EXP_WIN32_CANT_SPAWN_DOS16
 Language=English
-'%1' is a DOS-16 application.  DOS-16 is not supported due to Win32 limitations in how the VDM subsystem exposes itself.
+'%1' is a DOS-16 application.  DOS-16 is not supported due to limitations in how the VDM subsystem exposes itself.
 .
 
 
@@ -70,7 +70,7 @@ Severity=Warning
 Facility=Io
 SymbolicName=ERROR_EXP_WIN32_CANT_SPAWN_NONCUI
 Language=English
-'%1' is not a Win32 console application.
+'%1' does not run in the console or posix subsystem.
 .
 
 MessageId=0x1
