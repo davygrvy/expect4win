@@ -35,14 +35,14 @@
 #include <strsafe.h>
 #include <stdlib.h>
 #include "expWinInjectorIPC.hpp"
+
 #ifdef USE_DETOURS
 #   include "Detours/detours.h"
-#endif
-
-#ifdef _WIN64
-#   pragma comment (lib,"detours64.lib")
-#else
-#   pragma comment (lib,"detours32.lib")
+#   ifdef _WIN64
+#	pragma comment (lib,"detours64.lib")
+#   else
+#	pragma comment (lib,"detours32.lib")
+#   endif
 #endif
 
 
@@ -142,25 +142,68 @@ private:
 };
 
 Injector *inject;
+CMclMailbox *fromTrampIPC;
 
 BOOL
 WINAPI
 MyWriteConsoleA(
     _In_ HANDLE hConsoleOutput,
-    _In_reads_(nNumberOfCharsToWrite) CONST VOID* lpBuffer,
+    _In_reads_(nNumberOfCharsToWrite) LPCSTR lpBuffer,
     _In_ DWORD nNumberOfCharsToWrite,
     _Out_opt_ LPDWORD lpNumberOfCharsWritten,
     _Reserved_ LPVOID lpReserved
 )
 {
-    // push copy of lpBuffer onto IPCfrom_NAME mailbox
-    return WriteConsoleA(hConsoleOutput, lpBuffer, nNumberOfCharsToWrite, lpNumberOfCharsWritten, lpReserved);
+    // Assume with lpNumberOfCharsWritten, being optional, consumes all of
+    // it, always.
+
+     BOOL succeeded = WriteConsoleA(hConsoleOutput, lpBuffer, nNumberOfCharsToWrite,
+	    lpNumberOfCharsWritten, lpReserved);
+
+    if (succeeded)
+    {
+	IPCfromMsg* msg = new IPCfromMsg;
+	msg->type = FUNC_WriteConsoleA;
+	// NOTE: lpBuffer might not be null terminated.
+	// TODO: manage this in a for loop when static buffer space is too small
+	StringCbCopyNA(msg->ansiStr, sizeof(msg->ansiStr), lpBuffer, nNumberOfCharsToWrite);
+	msg->len = nNumberOfCharsToWrite;
+	fromTrampIPC->Post(msg);
+    }
+    return succeeded;
+};
+
+BOOL
+WINAPI
+MyWriteConsoleW(
+    _In_ HANDLE hConsoleOutput,
+    _In_reads_(nNumberOfCharsToWrite) LPCWSTR lpBuffer,
+    _In_ DWORD nNumberOfCharsToWrite,
+    _Out_opt_ LPDWORD lpNumberOfCharsWritten,
+    _Reserved_ LPVOID lpReserved
+)
+{
+     BOOL succeeded = WriteConsoleW(hConsoleOutput, lpBuffer, nNumberOfCharsToWrite,
+	    lpNumberOfCharsWritten, lpReserved);
+
+    if (succeeded)
+    {
+	IPCfromMsg* msg = new IPCfromMsg;
+	msg->type = FUNC_WriteConsoleW;
+	// NOTE: lpBuffer might not be null terminated.
+	// TODO: manage this in a for loop when static buffer space is too small
+	StringCbCopyNW(msg->uniStr, sizeof(msg->uniStr), lpBuffer, nNumberOfCharsToWrite);
+	msg->len = nNumberOfCharsToWrite;
+	fromTrampIPC->Post(msg);
+    }
+    return succeeded;
 };
 
 BOOL WINAPI
 DllMain (HINSTANCE hInst, ULONG ulReason, LPVOID lpReserved)
 {
     LONG error;
+    TCHAR boxName[50];
 
     // If preloading through the thunk helper, go away.
     if (DetourIsHelperProcess()) {
@@ -172,10 +215,15 @@ DllMain (HINSTANCE hInst, ULONG ulReason, LPVOID lpReserved)
 	DisableThreadLibraryCalls(hInst);
 	inject = new Injector();
 
+	StringCbPrintf(
+	    boxName, sizeof(boxName), IPCfrom_NAME, GetCurrentProcessId());
+	fromTrampIPC = new CMclMailbox(IPCfrom_NUMSLOTS, IPCfrom_SLOTSIZE, boxName);
+
 	DetourRestoreAfterWith();
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
-	DetourAttach(&(PVOID&)WriteConsoleA, MyWriteConsoleA);
+	DetourAttach((PVOID*)WriteConsoleA, MyWriteConsoleA);
+	DetourAttach((PVOID*)WriteConsoleW, MyWriteConsoleW);
 	error = DetourTransactionCommit();
 	break;
     case DLL_PROCESS_DETACH:
@@ -183,7 +231,8 @@ DllMain (HINSTANCE hInst, ULONG ulReason, LPVOID lpReserved)
 
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
-	DetourDetach(&(PVOID&)WriteConsoleA, MyWriteConsoleA);
+	DetourDetach((PVOID*)WriteConsoleA, MyWriteConsoleA);
+	DetourDetach((PVOID*)WriteConsoleW, MyWriteConsoleW);
 	error = DetourTransactionCommit();
 	break;
     }

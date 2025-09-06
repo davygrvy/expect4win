@@ -53,11 +53,15 @@ typedef struct {
 
 #define IPCfrom_NAME TEXT("ExpectDetour_pid%d")
 
-enum IPCfromMsgtype { A, B, C };
+enum IPCfromMsgtype { FUNC_WriteConsoleW, FUNC_WriteConsoleA, C };
 
 typedef struct {
     IPCfromMsgtype type;
-    DWORD todo;
+    SIZE_T len;
+    union {
+	WCHAR uniStr[80];
+	CHAR ansiStr[80];
+    };
 } IPCfromMsg;
 
 #define IPCfrom_NUMSLOTS 20
